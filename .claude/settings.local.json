@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd.exe:*)",
+      "Bash(curl:*)",
+      "Bash(ss:*)",
+      "Bash(jobs:*)",
+      "Bash(kill:*)"
+    ]
+  }
+}

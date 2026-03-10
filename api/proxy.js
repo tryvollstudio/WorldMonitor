@@ -1,28 +1,17 @@
-const express = require('express');
-const path    = require('path');
+// Vercel serverless function — mirrors the /api/proxy route in server.js
 
-const app  = express();
-const PORT = 3000;
-
-app.use(express.json({ limit: '10mb' }));
-
-// ── Allowed upstream hosts ────────────────────────────────────────────────────
 const ALLOWED = new Set([
-  // Finance
   'query1.finance.yahoo.com', 'query2.finance.yahoo.com',
-  // News RSS
   'feeds.bbci.co.uk', 'www.aljazeera.com', 'rss.cnn.com',
   'feeds.reuters.com', 'feeds.npr.org', 'feeds.skynews.com',
-  // Official statements
   'www.whitehouse.gov', 'en.kremlin.ru', 'kremlin.ru',
   'www.vaticannews.va', 'pib.gov.in', 'www.xinhuanet.com',
-  // Nitter instances
   'nitter.privacydev.net', 'nitter.poast.org', 'nitter.1d4.us', 'nitter.net',
 ]);
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
 
-// ── Yahoo Finance crumb cache (required since mid-2024) ───────────────────────
+// Module-level crumb cache (persists across warm invocations on Vercel)
 let yfCache = { cookies: '', crumb: '', exp: 0 };
 
 async function getYFCrumb() {
@@ -32,7 +21,6 @@ async function getYFCrumb() {
       headers: { 'User-Agent': UA, 'Accept': 'text/html' },
       signal: AbortSignal.timeout(8000),
     });
-    // getSetCookie() returns array; fall back to single header for older Node
     const raw = typeof r1.headers.getSetCookie === 'function'
       ? r1.headers.getSetCookie()
       : [r1.headers.get('set-cookie') || ''];
@@ -44,15 +32,15 @@ async function getYFCrumb() {
     });
     const crumb = (await r2.text()).trim();
     yfCache = { cookies, crumb, exp: Date.now() + 3_600_000 };
-    console.log('YF crumb refreshed:', crumb.slice(0, 8) + '…');
-  } catch (e) {
-    console.warn('YF crumb fetch failed:', e.message);
-  }
+  } catch (_) {}
   return yfCache;
 }
 
-// ── Generic proxy — MUST be before express.static to avoid 405 ───────────────
-app.get('/api/proxy', async (req, res) => {
+module.exports = async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'GET') return res.status(405).json({ error: 'GET only' });
+
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: 'Missing url param' });
 
@@ -83,14 +71,6 @@ app.get('/api/proxy', async (req, res) => {
     const body = await upstream.arrayBuffer();
     res.setHeader('Content-Type', ct).status(upstream.status).send(Buffer.from(body));
   } catch (err) {
-    console.error('Proxy error:', err.message);
     res.status(502).json({ error: err.message });
   }
-});
-
-// Static files AFTER the proxy route to prevent serve-static's 405 on POST/GET collisions
-app.use(express.static(path.join(__dirname)));
-
-app.listen(PORT, () => {
-  console.log(`World Monitor  →  http://localhost:${PORT}/world-monitor.html`);
-});
+};

@@ -8,42 +8,29 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
   :root {
-    --green: #00ff88;
-    --red: #ff3355;
-    --amber: #ffaa00;
-    --blue: #00aaff;
-    --purple: #aa00ff;
-    --bg: #050a0e;
-    --bg2: #0a1520;
-    --bg3: #0d1e2e;
-    --border: #1a3a5a;
-    --text: #c8e0f0;
-    --dim: #4a6a8a;
+    --green: #00ff88; --red: #ff3355; --amber: #ffaa00;
+    --blue: #00aaff;  --bg: #050a0e;  --bg2: #0a1520;
+    --bg3: #0d1e2e;   --border: #1a3a5a; --text: #c8e0f0; --dim: #4a6a8a;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body { height:100%; background:var(--bg); color:var(--text); font-family:'Share Tech Mono',monospace; overflow-x:hidden; }
 
-  /* Scanline overlay */
   body::before {
-    content:'';
-    position:fixed; top:0; left:0; right:0; bottom:0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    content:''; position:fixed; inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);
     pointer-events:none; z-index:9999;
   }
-  /* Noise texture */
   body::after {
-    content:'';
-    position:fixed; top:0; left:0; right:0; bottom:0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    content:''; position:fixed; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
     pointer-events:none; z-index:9998; opacity:0.4;
   }
 
   /* HEADER */
   #header {
-    background: linear-gradient(90deg, #000, var(--bg2), #000);
-    border-bottom: 1px solid var(--border);
-    padding: 6px 20px;
-    display:flex; align-items:center; justify-content:space-between;
+    background:linear-gradient(90deg,#000,var(--bg2),#000);
+    border-bottom:1px solid var(--border);
+    padding:6px 20px; display:flex; align-items:center; justify-content:space-between;
     position:sticky; top:0; z-index:100;
   }
   #header h1 { font-family:'Bebas Neue'; font-size:28px; letter-spacing:6px; color:var(--amber); text-shadow:0 0 20px rgba(255,170,0,0.5); }
@@ -51,12 +38,7 @@
   .pulse-dot { width:8px; height:8px; border-radius:50%; background:var(--green); display:inline-block; animation:pulse 1.5s infinite; box-shadow:0 0 8px var(--green); }
   @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
   #live-time { color:var(--green); font-size:13px; letter-spacing:2px; }
-  #api-key-section { display:flex; gap:8px; align-items:center; }
-  #api-key-input { background:var(--bg3); border:1px solid var(--border); color:var(--text); font-family:'Share Tech Mono'; font-size:11px; padding:4px 8px; width:280px; border-radius:2px; }
-  #api-key-input:focus { outline:none; border-color:var(--amber); }
-  #save-key-btn { background:var(--amber); color:#000; border:none; font-family:'Bebas Neue'; font-size:14px; padding:4px 12px; cursor:pointer; letter-spacing:1px; border-radius:2px; }
-  #save-key-btn:hover { background:#ffcc44; }
-  .key-status { font-size:10px; }
+  #globe-canvas { display:block; image-rendering:crisp-edges; }
 
   /* TICKER */
   .ticker-wrap { background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); height:28px; overflow:hidden; position:relative; }
@@ -67,51 +49,19 @@
   .ticker-sym { color:var(--amber); font-weight:bold; }
   @keyframes ticker-scroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
 
-  /* MAIN GRID */
-  #main-grid {
-    display:grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto;
-    gap:1px;
-    background:var(--border);
-    padding:1px;
-  }
+  /* GRID */
+  #main-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--border); padding:1px; }
 
   /* PANELS */
-  .panel {
-    background:var(--bg);
-    padding:0;
-    position:relative;
-    min-height:300px;
-  }
-  .panel-header {
-    background:var(--bg2);
-    border-bottom:1px solid var(--border);
-    padding:8px 12px;
-    display:flex; align-items:center; justify-content:space-between;
-  }
-  .panel-title {
-    font-family:'Bebas Neue';
-    font-size:18px;
-    letter-spacing:3px;
-    color:var(--amber);
-    display:flex; align-items:center; gap:8px;
-  }
+  .panel { background:var(--bg); padding:0; position:relative; min-height:300px; }
+  .panel-header { background:var(--bg2); border-bottom:1px solid var(--border); padding:8px 12px; display:flex; align-items:center; justify-content:space-between; }
+  .panel-title { font-family:'Bebas Neue'; font-size:18px; letter-spacing:3px; color:var(--amber); display:flex; align-items:center; gap:8px; }
   .panel-body { padding:10px; overflow-y:auto; }
-
-  .refresh-btn {
-    background:transparent; border:1px solid var(--border); color:var(--dim);
-    font-family:'Share Tech Mono'; font-size:10px; padding:3px 8px; cursor:pointer;
-    border-radius:2px; transition:all 0.2s;
-  }
+  .refresh-btn { background:transparent; border:1px solid var(--border); color:var(--dim); font-family:'Share Tech Mono'; font-size:10px; padding:3px 8px; cursor:pointer; border-radius:2px; transition:all 0.2s; }
   .refresh-btn:hover { border-color:var(--amber); color:var(--amber); }
 
-  /* Loading state */
-  .loading {
-    display:flex; align-items:center; justify-content:center;
-    height:100px; color:var(--dim); font-size:12px;
-    flex-direction:column; gap:8px;
-  }
+  /* LOADING */
+  .loading { display:flex; align-items:center; justify-content:center; height:100px; color:var(--dim); font-size:12px; flex-direction:column; gap:8px; }
   .loading-bar { width:200px; height:2px; background:var(--border); border-radius:1px; overflow:hidden; }
   .loading-bar::after { content:''; display:block; height:100%; width:40%; background:var(--amber); animation:loading-anim 1s infinite; }
   @keyframes loading-anim { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }
@@ -127,32 +77,20 @@
   .leader-item { padding:8px 0; border-bottom:1px solid var(--border); }
   .leader-item:last-child { border-bottom:none; }
   .leader-name { color:var(--amber); font-size:12px; font-family:'Bebas Neue'; letter-spacing:1px; }
-  .leader-quote { font-size:11px; color:var(--text); line-height:1.4; margin-top:3px; font-style:italic; }
+  .leader-quote { font-size:11px; color:var(--text); line-height:1.4; margin-top:3px; }
   .leader-time { font-size:10px; color:var(--dim); margin-top:2px; }
-
-  /* TWEETS */
-  .tweet-item { padding:8px 0; border-bottom:1px solid var(--border); }
-  .tweet-item:last-child { border-bottom:none; }
-  .tweet-handle { color:var(--blue); font-size:11px; font-family:'Bebas Neue'; letter-spacing:1px; }
-  .tweet-content { font-size:11px; color:var(--text); line-height:1.4; margin-top:3px; }
-  .tweet-stats { font-size:10px; color:var(--dim); margin-top:3px; display:flex; gap:12px; }
-  .tweet-stat { display:flex; align-items:center; gap:3px; }
-  .tweet-stat .up { color:var(--green); }
-  .section-divider { font-family:'Bebas Neue'; font-size:11px; letter-spacing:2px; color:var(--dim);
-    border-bottom:1px solid var(--border); padding-bottom:3px; margin:8px 0 4px; }
-
-  /* GLOBE */
-  #globe-canvas { display:block; image-rendering:crisp-edges; }
+  .section-divider { font-family:'Bebas Neue'; font-size:11px; letter-spacing:2px; color:var(--dim); border-bottom:1px solid var(--border); padding-bottom:3px; margin:8px 0 4px; }
 
   /* SPORTS */
   .sport-section { margin-bottom:10px; }
   .sport-league { color:var(--amber); font-size:12px; font-family:'Bebas Neue'; letter-spacing:2px; border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:5px; }
   .sport-match { display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:11px; border-bottom:1px solid rgba(26,58,90,0.4); }
-  .sport-teams { color:var(--text); }
-  .sport-score { color:var(--green); font-weight:bold; }
+  .sport-teams { color:var(--text); flex:1; }
+  .sport-score { color:var(--green); font-weight:bold; margin:0 8px; }
+  .sport-status { font-size:10px; color:var(--dim); }
 
-  /* STOCKS - spans full width */
-  #panel-stocks { grid-column: 1 / -1; }
+  /* STOCKS */
+  #panel-stocks { grid-column:1 / -1; }
   .stocks-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:4px; }
   .stock-item { background:var(--bg2); padding:6px 8px; border:1px solid var(--border); border-radius:2px; }
   .stock-sym { font-size:11px; color:var(--amber); font-weight:bold; }
@@ -183,7 +121,6 @@
   .weather-city { font-family:'Bebas Neue'; font-size:24px; color:var(--amber); letter-spacing:3px; }
   .weather-country { font-size:12px; color:var(--dim); }
   .weather-temp { font-size:48px; font-family:'Bebas Neue'; color:var(--text); line-height:1; }
-  .weather-icon { font-size:36px; }
   .weather-details { font-size:11px; color:var(--dim); margin-top:6px; }
   .weather-nav { display:flex; gap:4px; flex-wrap:wrap; padding:8px 10px; }
   .weather-dot { width:6px; height:6px; border-radius:50%; background:var(--border); cursor:pointer; transition:background 0.2s; }
@@ -199,34 +136,20 @@
   .clock-date { font-size:10px; color:var(--dim); }
   .clock-tz { font-size:9px; color:var(--border); margin-top:2px; }
 
-  /* up/down colors */
   .up { color:var(--green); }
   .down { color:var(--red); }
   .neutral { color:var(--dim); }
 
-  /* API Error */
   .api-error { color:var(--red); font-size:11px; padding:8px; border:1px solid rgba(255,51,85,0.3); border-radius:2px; background:rgba(255,51,85,0.05); }
-  .api-warn { color:var(--amber); font-size:11px; padding:8px; border:1px solid rgba(255,170,0,0.3); border-radius:2px; background:rgba(255,170,0,0.05); }
+  .api-warn  { color:var(--amber); font-size:11px; padding:8px; border:1px solid rgba(255,170,0,0.3); border-radius:2px; background:rgba(255,170,0,0.05); }
 
-  /* Responsive tweaks */
-  @media (max-width:1400px) {
-    #main-grid { grid-template-columns: 1fr 1fr; }
-    #panel-stocks { grid-column:1 / -1; }
-  }
-  @media (max-width:900px) {
-    #main-grid { grid-template-columns: 1fr; }
-    #panel-stocks { grid-column:1; }
-  }
+  @media (max-width:1400px) { #main-grid { grid-template-columns:1fr 1fr; } #panel-stocks { grid-column:1 / -1; } }
+  @media (max-width:900px)  { #main-grid { grid-template-columns:1fr; }   #panel-stocks { grid-column:1; } }
 
-  /* Scrollbar */
   ::-webkit-scrollbar { width:4px; height:4px; }
   ::-webkit-scrollbar-track { background:var(--bg); }
   ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
   ::-webkit-scrollbar-thumb:hover { background:var(--amber); }
-
-  /* Refresh animation */
-  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-  .refreshing { animation:spin 0.8s linear infinite; display:inline-block; }
 </style>
 </head>
 <body>
@@ -237,45 +160,27 @@
     <canvas id="globe-canvas" width="54" height="54"></canvas>
     <h1>WORLD MONITOR</h1>
   </div>
-  <div id="api-key-section">
-    <input type="password" id="api-key-input" placeholder="Enter Anthropic API Key (sk-ant-...)" />
-    <button id="save-key-btn" onclick="saveApiKey()">SAVE</button>
-    <span id="key-status" class="key-status neutral">NO KEY</span>
-  </div>
   <div class="status">
     <span class="pulse-dot"></span>
-    <span>LIVE</span>
+    <span>LIVE · FREE APIs</span>
     <span id="live-time">--:--:--</span>
   </div>
 </div>
 
-<!-- TOP TICKER: Stock Indices -->
+<!-- TOP TICKER: Indices -->
 <div class="ticker-wrap top-ticker">
   <div class="ticker-label">INDICES</div>
-  <div class="ticker-content" id="ticker-indices" style="animation-duration:60s; padding-left:160px;">
-    <span class="ticker-item"><span class="ticker-sym">OSEBX</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">S&P 500</span> <span>—</span></span>
+  <div class="ticker-content" id="ticker-indices" style="animation-duration:60s;padding-left:160px;">
+    <span class="ticker-item"><span class="ticker-sym">S&amp;P 500</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">NASDAQ</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">DAX</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">FTSE 100</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">CAC 40</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">NIKKEI</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">HANG SENG</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">ASX 200</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">BOVESPA</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">SENSEX</span> <span>—</span></span>
-    <!-- duplicate for seamless loop -->
-    <span class="ticker-item"><span class="ticker-sym">OSEBX</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">S&P 500</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">S&amp;P 500</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">NASDAQ</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">DAX</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">FTSE 100</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">CAC 40</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">NIKKEI</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">HANG SENG</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">ASX 200</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">BOVESPA</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">SENSEX</span> <span>—</span></span>
   </div>
 </div>
 
@@ -296,10 +201,10 @@
   <!-- 2. WORLD LEADERS -->
   <div class="panel" id="panel-leaders">
     <div class="panel-header">
-      <div class="panel-title">◈ WORLD LEADERS &amp; TWEETS</div>
+      <div class="panel-title">◈ WORLD LEADERS</div>
       <button class="refresh-btn" onclick="loadLeaders()">⟳ REFRESH</button>
     </div>
-    <div class="panel-body" id="leaders-body" style="max-height:400px; overflow-y:auto;">
+    <div class="panel-body" id="leaders-body" style="max-height:420px;overflow-y:auto;">
       <div class="loading"><div class="loading-bar"></div>LOADING STATEMENTS...</div>
     </div>
   </div>
@@ -310,7 +215,7 @@
       <div class="panel-title">◎ SPORTS SCORES</div>
       <button class="refresh-btn" onclick="loadSports()">⟳ REFRESH</button>
     </div>
-    <div class="panel-body" id="sports-body" style="max-height:400px; overflow-y:auto;">
+    <div class="panel-body" id="sports-body" style="max-height:420px;overflow-y:auto;">
       <div class="loading"><div class="loading-bar"></div>LOADING SCORES...</div>
     </div>
   </div>
@@ -318,7 +223,7 @@
   <!-- 4. STOCKS (full width) -->
   <div class="panel" id="panel-stocks">
     <div class="panel-header">
-      <div class="panel-title">◆ S&P 500 STOCKS</div>
+      <div class="panel-title">◆ TOP 30 S&amp;P 500</div>
       <button class="refresh-btn" onclick="loadStocks()">⟳ REFRESH</button>
     </div>
     <div class="panel-body" id="stocks-body">
@@ -376,828 +281,620 @@
 <!-- MIDDLE TICKER: Commodities -->
 <div class="ticker-wrap">
   <div class="ticker-label">COMMOD</div>
-  <div class="ticker-content" id="ticker-commodities" style="animation-duration:50s; padding-left:160px;">
+  <div class="ticker-content" id="ticker-commodities" style="animation-duration:50s;padding-left:160px;">
     <span class="ticker-item"><span class="ticker-sym">GOLD</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">SILVER</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">OIL WTI</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">BRENT</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">NAT GAS</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">COPPER</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">WHEAT</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">CORN</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">GOLD</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">SILVER</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">OIL WTI</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">BRENT</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">NAT GAS</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">COPPER</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">WHEAT</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">CORN</span> <span>—</span></span>
   </div>
 </div>
 
-<!-- BOTTOM TICKER: S&P 500 -->
+<!-- BOTTOM TICKER: Stocks -->
 <div class="ticker-wrap">
-  <div class="ticker-label">S&P 500</div>
-  <div class="ticker-content" id="ticker-stocks" style="animation-duration:120s; padding-left:160px;">
+  <div class="ticker-label">S&amp;P 500</div>
+  <div class="ticker-content" id="ticker-stocks" style="animation-duration:90s;padding-left:160px;">
     <span class="ticker-item"><span class="ticker-sym">AAPL</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">MSFT</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">NVDA</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">AMZN</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">GOOGL</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">META</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">TSLA</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">BRK.B</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">JPM</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">V</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">AAPL</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">MSFT</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">NVDA</span> <span>—</span></span>
     <span class="ticker-item"><span class="ticker-sym">AMZN</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">GOOGL</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">META</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">TSLA</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">BRK.B</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">JPM</span> <span>—</span></span>
-    <span class="ticker-item"><span class="ticker-sym">V</span> <span>—</span></span>
   </div>
 </div>
 
 <script>
 // ============================================================
-// API KEY MANAGEMENT
+// UTILITIES
 // ============================================================
-let ANTHROPIC_API_KEY = localStorage.getItem('anthropic_api_key') || '';
 
-function saveApiKey() {
-  const input = document.getElementById('api-key-input');
-  ANTHROPIC_API_KEY = input.value.trim();
-  if (ANTHROPIC_API_KEY) {
-    localStorage.setItem('anthropic_api_key', ANTHROPIC_API_KEY);
-    document.getElementById('key-status').textContent = '● KEY SAVED';
-    document.getElementById('key-status').className = 'key-status up';
-    input.value = '';
-    // Trigger all Anthropic-dependent loads
-    loadNews();
-    loadLeaders();
-    loadSports();
-    loadStocks();
-    loadCommodities();
+// Route through local/Vercel proxy for CORS-blocked hosts
+async function proxyFetch(url) {
+  const r = await fetch('/api/proxy?url=' + encodeURIComponent(url));
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.error || `Proxy ${r.status}`);
   }
+  return r;
 }
 
-function initApiKey() {
-  if (ANTHROPIC_API_KEY) {
-    document.getElementById('key-status').textContent = '● KEY ACTIVE';
-    document.getElementById('key-status').className = 'key-status up';
+// Parse RSS 2.0 or Atom XML → array of {title, link, pubDate}
+function parseRSS(xmlStr) {
+  const doc = new DOMParser().parseFromString(xmlStr, 'text/xml');
+  if (doc.querySelector('parsererror')) throw new Error('XML parse error');
+  // Atom
+  const entries = doc.querySelectorAll('entry');
+  if (entries.length) {
+    return Array.from(entries).map(e => ({
+      title:   e.querySelector('title')?.textContent?.trim() || '',
+      link:    e.querySelector('link[rel="alternate"]')?.getAttribute('href')
+             || e.querySelector('link')?.getAttribute('href') || '',
+      pubDate: e.querySelector('published,updated')?.textContent?.trim() || '',
+    }));
   }
+  // RSS 2.0
+  return Array.from(doc.querySelectorAll('item')).map(i => ({
+    title:   i.querySelector('title')?.textContent?.trim() || '',
+    link:    i.querySelector('link')?.textContent?.trim()  || '',
+    pubDate: i.querySelector('pubDate')?.textContent?.trim() || '',
+  }));
 }
 
-// ============================================================
-// ANTHROPIC API CALL
-// ============================================================
-async function callAnthropic(prompt, maxTokens = 1000) {
-  if (!ANTHROPIC_API_KEY) {
-    throw new Error('No API key. Enter your Anthropic API key above.');
-  }
-  const response = await fetch('/api/anthropic', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: maxTokens,
-      system: 'You are a data API. Your response must be raw valid JSON only — no explanation, no markdown, no code fences, no commentary before or after. Start your response with [ or { and end with ] or }.',
-      tools: [{
-        type: 'web_search_20250305',
-        name: 'web_search',
-        max_uses: 3
-      }],
-      messages: [{
-        role: 'user',
-        content: prompt
-      }]
-    })
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error?.message || `API error ${response.status}`);
-  }
-
-  const data = await response.json();
-  // Extract only text blocks (skip tool_use, tool_result, thinking blocks)
-  let text = '';
-  for (const block of data.content || []) {
-    if (block.type === 'text') text += block.text;
-  }
-  return text.trim();
+function relTime(d) {
+  const dt = new Date(d);
+  if (isNaN(dt)) return d ? String(d).slice(0, 16) : '—';
+  const s = (Date.now() - dt) / 1000;
+  if (s < 60)    return 'just now';
+  if (s < 3600)  return Math.floor(s / 60)   + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600)  + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
 }
 
-function parseJSON(text) {
-  if (!text) throw new Error('Empty response from API');
-
-  // 1. Try parsing the whole text as-is
-  try { return JSON.parse(text); } catch(_) {}
-
-  // 2. Strip markdown code fences and retry
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenced) {
-    try { return JSON.parse(fenced[1].trim()); } catch(_) {}
-  }
-
-  // 3. Find the outermost [ ... ] or { ... } using bracket matching
-  for (const [open, close] of [['[', ']'], ['{', '}']]) {
-    const start = text.indexOf(open);
-    if (start === -1) continue;
-    let depth = 0;
-    let inString = false;
-    let escape = false;
-    for (let i = start; i < text.length; i++) {
-      const ch = text[i];
-      if (escape) { escape = false; continue; }
-      if (ch === '\\' && inString) { escape = true; continue; }
-      if (ch === '"') { inString = !inString; continue; }
-      if (inString) continue;
-      if (ch === open) depth++;
-      else if (ch === close) {
-        depth--;
-        if (depth === 0) {
-          try { return JSON.parse(text.slice(start, i + 1)); } catch(_) {}
-          break;
-        }
-      }
-    }
-  }
-
-  throw new Error('No valid JSON found in API response. Raw: ' + text.slice(0, 120));
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function showError(bodyId, msg) {
-  document.getElementById(bodyId).innerHTML = `<div class="api-error">⚠ ${msg}</div>`;
+function colorChange(v) {
+  const n = parseFloat(v);
+  return isNaN(n) ? 'neutral' : n > 0 ? 'up' : n < 0 ? 'down' : 'neutral';
 }
 
-function showLoading(bodyId, label) {
-  document.getElementById(bodyId).innerHTML = `<div class="loading"><div class="loading-bar"></div>${label}</div>`;
+function fmtPct(v) {
+  const n = parseFloat(v);
+  if (isNaN(n)) return '—';
+  return (n > 0 ? '+' : '') + n.toFixed(2) + '%';
 }
 
-function colorChange(val) {
-  const n = parseFloat(val);
-  if (isNaN(n)) return 'neutral';
-  return n > 0 ? 'up' : n < 0 ? 'down' : 'neutral';
+function fmtPrice(n, dp = 2) {
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
 }
 
-function formatChange(val) {
-  const n = parseFloat(val);
-  if (isNaN(n)) return val || '—';
-  const sign = n > 0 ? '+' : '';
-  return sign + n.toFixed(2) + '%';
+function fmtMcap(n) {
+  if (!n) return '—';
+  if (n >= 1e12) return '$' + (n/1e12).toFixed(2) + 'T';
+  if (n >= 1e9)  return '$' + (n/1e9).toFixed(1)  + 'B';
+  if (n >= 1e6)  return '$' + (n/1e6).toFixed(1)  + 'M';
+  return '$' + n.toLocaleString();
+}
+
+function showLoading(id, msg) {
+  document.getElementById(id).innerHTML =
+    `<div class="loading"><div class="loading-bar"></div>${msg}</div>`;
+}
+
+function showError(id, msg) {
+  document.getElementById(id).innerHTML = `<div class="api-error">⚠ ${escHtml(msg)}</div>`;
 }
 
 // ============================================================
-// 1. BREAKING NEWS
+// 1. BREAKING NEWS  — RSS via proxy (BBC, AJ, CNN, Reuters)
 // ============================================================
+const NEWS_FEEDS = [
+  { src: 'BBC',        url: 'https://feeds.bbci.co.uk/news/rss.xml' },
+  { src: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml' },
+  { src: 'CNN',        url: 'http://rss.cnn.com/rss/edition.rss' },
+  { src: 'Reuters',    url: 'https://feeds.reuters.com/reuters/topNews' },
+];
+
 async function loadNews() {
   showLoading('news-body', 'FETCHING HEADLINES...');
   try {
-    const text = await callAnthropic(
-      `Search for the top 8 international breaking news headlines right now (${new Date().toISOString()}). ` +
-      `Return ONLY a JSON array of objects with fields: headline (string), source (string), time (string, relative like "2 min ago" or "1 hr ago"). ` +
-      `Focus on major world events. No commentary, just the JSON array.`,
-      1200
+    const settled = await Promise.allSettled(
+      NEWS_FEEDS.map(f =>
+        proxyFetch(f.url).then(r => r.text()).then(xml => parseRSS(xml).map(i => ({ ...i, src: f.src })))
+      )
     );
-    const items = parseJSON(text);
-    let html = '';
-    items.slice(0, 8).forEach((item, i) => {
-      html += `<div class="news-item">
-        <div class="news-headline"><span class="news-number">${i+1}.</span>${escHtml(item.headline)}</div>
-        <div class="news-meta">${escHtml(item.source || '')} · ${escHtml(item.time || '')}</div>
-      </div>`;
-    });
-    document.getElementById('news-body').innerHTML = html;
-  } catch(e) {
-    showError('news-body', e.message);
-  }
+    const items = settled
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => r.value.slice(0, 3));
+    items.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    const top = items.slice(0, 8);
+    if (!top.length) { showError('news-body', 'All RSS feeds failed to load.'); return; }
+    document.getElementById('news-body').innerHTML = top.map((item, i) => `
+      <div class="news-item">
+        <div class="news-headline"><span class="news-number">${i+1}.</span>${escHtml(item.title)}</div>
+        <div class="news-meta">${escHtml(item.src)} · ${relTime(item.pubDate)}</div>
+      </div>`).join('');
+  } catch(e) { showError('news-body', e.message); }
 }
 
 // ============================================================
-// 2. WORLD LEADERS & TRENDING TWEETS
+// 2. WORLD LEADERS — official RSS + Nitter for social posts
 // ============================================================
+const LEADER_FEEDS = [
+  // Official government / institution feeds
+  { name: 'WHITE HOUSE',    url: 'https://www.whitehouse.gov/news/feed/',                  type: 'official' },
+  { name: 'KREMLIN',        url: 'https://en.kremlin.ru/events/president/news/rss/',        type: 'official' },
+  { name: 'POPE FRANCIS',   url: 'https://www.vaticannews.va/en/pope.rss',                  type: 'official' },
+  { name: 'PMO INDIA',      url: 'https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3', type: 'official' },
+  { name: 'XINHUA / XI',    url: 'https://www.xinhuanet.com/english/rss/chinalatestnews.xml', type: 'official' },
+  // Nitter (Twitter/X mirror) — fails gracefully if instance is down
+  { name: '@elonmusk',      url: 'https://nitter.privacydev.net/elonmusk/rss',      type: 'social' },
+  { name: '@realDonaldTrump', url: 'https://nitter.privacydev.net/realDonaldTrump/rss', type: 'social' },
+  { name: '@BillGates',     url: 'https://nitter.privacydev.net/BillGates/rss',      type: 'social' },
+  { name: '@finkd',         url: 'https://nitter.privacydev.net/finkd/rss',          type: 'social' },
+];
+
 async function loadLeaders() {
-  showLoading('leaders-body', 'FETCHING STATEMENTS & TWEETS...');
+  showLoading('leaders-body', 'FETCHING STATEMENTS...');
   try {
-    const text = await callAnthropic(
-      `Search the web for two things and return a single JSON object with two keys: "leaders" and "tweets". ` +
-      `"leaders": array of recent public statements or posts from: Donald Trump, Elon Musk, Xi Jinping, Vladimir Putin, Narendra Modi, Pope Francis, Jeff Bezos, Bill Gates, Mark Zuckerberg, Ursula von der Leyen. ` +
-      `Each leader element: {"name":"string","statement":"string","time":"string","platform":"string"} — platform = X/Twitter, Speech, Press Conference, Statement, or Interview. ` +
-      `"tweets": array of the 8 most-viral or most-engaged tweets right now globally (highest likes+retweets, any topic or author). ` +
-      `Each tweet element: {"handle":"string","content":"string","time":"string","likes":"string","retweets":"string"}. ` +
-      `likes and retweets as formatted strings like "124K" or "3.2M". ` +
-      `Begin your response with { and end with }. No text outside the JSON object.`,
-      2000
+    const settled = await Promise.allSettled(
+      LEADER_FEEDS.map(f =>
+        proxyFetch(f.url).then(r => r.text())
+          .then(xml => ({ name: f.name, type: f.type, items: parseRSS(xml) }))
+      )
     );
-    const data = parseJSON(text);
-    const leaders = Array.isArray(data.leaders) ? data.leaders : [];
-    const tweets  = Array.isArray(data.tweets)  ? data.tweets  : [];
+
+    const official = [], social = [];
+    settled.forEach((r, i) => {
+      if (r.status !== 'fulfilled' || !r.value.items.length) return;
+      const { name, type, items } = r.value;
+      const item = items[0];
+      const entry = `<div class="leader-item">
+        <div class="leader-name">${escHtml(name)}</div>
+        <div class="leader-quote">${escHtml(item.title)}</div>
+        <div class="leader-time">${relTime(item.pubDate)}</div>
+      </div>`;
+      (type === 'social' ? social : official).push(entry);
+    });
+
     let html = '';
+    if (official.length) html += `<div class="section-divider">◈ OFFICIAL STATEMENTS</div>` + official.join('');
+    if (social.length)   html += `<div class="section-divider">◈ SOCIAL MEDIA</div>`         + social.join('');
 
-    if (leaders.length) {
-      html += `<div class="section-divider">◈ WORLD LEADERS</div>`;
-      leaders.forEach(item => {
-        html += `<div class="leader-item">
-          <div class="leader-name">${escHtml(item.name)}</div>
-          <div class="leader-quote">"${escHtml(item.statement)}"</div>
-          <div class="leader-time">${escHtml(item.platform || '')} · ${escHtml(item.time || '')}</div>
-        </div>`;
-      });
-    }
-
-    if (tweets.length) {
-      html += `<div class="section-divider">🐦 TRENDING TWEETS</div>`;
-      tweets.forEach(t => {
-        html += `<div class="tweet-item">
-          <div class="tweet-handle">@${escHtml(t.handle)}</div>
-          <div class="tweet-content">${escHtml(t.content)}</div>
-          <div class="tweet-stats">
-            <span class="tweet-stat">❤ <span class="up">${escHtml(t.likes || '—')}</span></span>
-            <span class="tweet-stat">↺ <span>${escHtml(t.retweets || '—')}</span></span>
-            <span class="tweet-stat">${escHtml(t.time || '')}</span>
-          </div>
-        </div>`;
-      });
-    }
-
-    document.getElementById('leaders-body').innerHTML = html || '<div class="api-warn">No recent data found.</div>';
-  } catch(e) {
-    showError('leaders-body', e.message);
-  }
+    document.getElementById('leaders-body').innerHTML =
+      html || '<div class="api-warn">No feeds loaded — check proxy connectivity.</div>';
+  } catch(e) { showError('leaders-body', e.message); }
 }
 
 // ============================================================
-// 3. SPORTS SCORES
+// 3. SPORTS — thesportsdb.com free API (CORS-enabled)
 // ============================================================
+const SPORT_LEAGUES = [
+  { name: 'PREMIER LEAGUE',    id: 4328 },
+  { name: 'CHAMPIONS LEAGUE',  id: 4480 },
+  { name: 'NBA',               id: 4387 },
+  { name: 'NFL',               id: 4391 },
+  { name: 'ELITESERIEN (NOR)', id: 4346 },
+  { name: 'FORMULA 1',         id: 4370 },
+];
+
 async function loadSports() {
   showLoading('sports-body', 'FETCHING SCORES...');
   try {
-    const text = await callAnthropic(
-      `Search the web for the most recent scores and results from: Premier League, Champions League, NBA, NFL, Eliteserien (Norway), Formula 1, Tennis (ATP/WTA). ` +
-      `Return a JSON array. Each element: {"league":"string","matches":[{"home":"string","away":"string","score":"string","status":"string"}]}. ` +
-      `status must be one of: FT, HT, Live, Scheduled, Postponed. Include up to 4 matches per league. ` +
-      `Begin your response with [ and end with ]. No text outside the JSON array.`,
-      1500
+    const settled = await Promise.allSettled(
+      SPORT_LEAGUES.map(l =>
+        fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${l.id}`)
+          .then(r => r.json())
+          .then(d => ({ name: l.name, events: (d.events || []).slice(-4).reverse() }))
+      )
     );
-    const leagues = parseJSON(text);
+
     let html = '';
-    leagues.forEach(league => {
-      html += `<div class="sport-section"><div class="sport-league">${escHtml(league.league)}</div>`;
-      (league.matches || []).forEach(m => {
+    settled.forEach(r => {
+      if (r.status !== 'fulfilled') return;
+      const { name, events } = r.value;
+      if (!events.length) return;
+      html += `<div class="sport-section"><div class="sport-league">${escHtml(name)}</div>`;
+      events.forEach(e => {
+        const score = (e.intHomeScore != null && e.intAwayScore != null)
+          ? `${e.intHomeScore}–${e.intAwayScore}` : '—';
+        const status = e.strStatus === 'Match Finished' ? 'FT'
+          : e.strStatus === 'Not Started' ? e.strTime?.slice(0,5) || 'NS'
+          : e.strStatus || '';
         html += `<div class="sport-match">
-          <span class="sport-teams">${escHtml(m.home)} vs ${escHtml(m.away)}</span>
-          <span class="sport-score">${escHtml(m.score || '—')}</span>
-          <span class="neutral" style="font-size:10px;">${escHtml(m.status || '')}</span>
+          <span class="sport-teams">${escHtml(e.strHomeTeam)} vs ${escHtml(e.strAwayTeam)}</span>
+          <span class="sport-score">${score}</span>
+          <span class="sport-status">${escHtml(status)}</span>
         </div>`;
       });
       html += '</div>';
     });
-    document.getElementById('sports-body').innerHTML = html || '<div class="api-warn">No recent results found.</div>';
-  } catch(e) {
-    showError('sports-body', e.message);
-  }
+
+    document.getElementById('sports-body').innerHTML =
+      html || '<div class="api-warn">No sports data loaded.</div>';
+  } catch(e) { showError('sports-body', e.message); }
 }
 
 // ============================================================
-// 4. STOCKS
+// 4. STOCKS — Yahoo Finance v7 via proxy (crumb handled server-side)
 // ============================================================
-const SP500_SYMBOLS = [
-  'AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','BRK.B','JPM','V',
-  'UNH','XOM','MA','LLY','AVGO','BAC','COST','NFLX','AMD','WMT'
+const STOCK_SYMS = [
+  'AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','BRK-B','JPM','V',
+  'UNH','XOM','MA','LLY','AVGO','BAC','COST','NFLX','AMD','WMT',
+  'JNJ','PG','HD','MRK','ABBV','CVX','ORCL','CRM','PEP','KO',
 ];
 
 async function loadStocks() {
   showLoading('stocks-body', 'FETCHING STOCK PRICES...');
   try {
-    const text = await callAnthropic(
-      `Search the web for current stock prices for these ticker symbols: ${SP500_SYMBOLS.join(', ')}. ` +
-      `Return a JSON array. Each element must use exactly these three keys: "symbol", "price", "change24h". ` +
-      `"price" is the current USD price as a plain number. "change24h" is the daily percentage change as a plain number. ` +
-      `Example element: {"symbol":"AAPL","price":213.49,"change24h":-0.83}. ` +
-      `Begin your response with [ and end with ]. No text outside the JSON array.`,
-      2000
-    );
-    const raw = parseJSON(text);
-    // Normalise field names — the model sometimes returns currentPrice, current_price, etc.
-    const stocks = raw.map(s => ({
-      symbol:   s.symbol   || s.ticker || s.name || '?',
-      price:    s.price    ?? s.currentPrice ?? s.current_price ?? s.lastPrice  ?? s.last_price  ?? s.close ?? s.value ?? null,
-      change24h: s.change24h ?? s.changePercent ?? s.change_percent ?? s.percentChange ?? s.pct_change ?? s.dailyChangePercent ?? null
-    }));
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${STOCK_SYMS.join(',')}&fields=regularMarketPrice,regularMarketChangePercent`;
+    const data = await proxyFetch(url).then(r => r.json());
+    const quotes = data?.quoteResponse?.result || [];
+    if (!quotes.length) throw new Error('No quote data returned from Yahoo Finance');
+
     let html = '<div class="stocks-grid">';
-    stocks.forEach(s => {
-      const cls = colorChange(s.change24h);
-      const chg = formatChange(s.change24h);
-      const priceStr = s.price != null ? Number(s.price).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—';
+    quotes.forEach(q => {
+      const cls = colorChange(q.regularMarketChangePercent);
       html += `<div class="stock-item">
-        <div class="stock-sym">${escHtml(s.symbol)}</div>
-        <div class="stock-price">$${priceStr}</div>
-        <div class="stock-change ${cls}">${chg}</div>
+        <div class="stock-sym">${escHtml(q.symbol)}</div>
+        <div class="stock-price">$${fmtPrice(q.regularMarketPrice)}</div>
+        <div class="stock-change ${cls}">${fmtPct(q.regularMarketChangePercent)}</div>
       </div>`;
     });
     html += '</div>';
     document.getElementById('stocks-body').innerHTML = html;
-
-    // Update bottom ticker
-    updateStockTicker(stocks);
-  } catch(e) {
-    showError('stocks-body', e.message);
-  }
+    updateStockTicker(quotes);
+  } catch(e) { showError('stocks-body', e.message); }
 }
 
-function updateStockTicker(stocks) {
-  const ticker = document.getElementById('ticker-stocks');
-  let html = '';
-  [...stocks, ...stocks].forEach(s => {
-    const cls = colorChange(s.change24h);
-    const chg = formatChange(s.change24h);
-    const priceStr = s.price != null ? Number(s.price).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—';
-    html += `<span class="ticker-item"><span class="ticker-sym">${escHtml(s.symbol)}</span> <span>$${priceStr}</span> <span class="${cls}">${chg}</span></span>`;
-  });
-  ticker.innerHTML = html;
+function updateStockTicker(quotes) {
+  const el = document.getElementById('ticker-stocks');
+  const items = [...quotes, ...quotes].map(q => {
+    const cls = colorChange(q.regularMarketChangePercent);
+    return `<span class="ticker-item"><span class="ticker-sym">${escHtml(q.symbol)}</span> <span>$${fmtPrice(q.regularMarketPrice)}</span> <span class="${cls}">${fmtPct(q.regularMarketChangePercent)}</span></span>`;
+  }).join('');
+  el.innerHTML = items;
 }
 
 // ============================================================
-// 5. CRYPTO (CoinGecko)
+// 5. CRYPTO — CoinGecko free API (CORS-enabled, no key)
 // ============================================================
-const STABLECOINS = ['tether','usd-coin','dai','binance-usd','trueusd','usdd','frax','paxos-standard'];
+const STABLECOINS = new Set(['tether','usd-coin','dai','binance-usd','trueusd','usdd','frax','paxos-standard','first-digital-usd']);
 
 async function loadCrypto() {
   showLoading('crypto-body', 'FETCHING CRYPTO DATA...');
   try {
-    const url = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=40&page=1&sparkline=false&price_change_percentage=24h';
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`CoinGecko error ${resp.status}`);
-    const data = await resp.json();
-    const filtered = data.filter(c => !STABLECOINS.includes(c.id)).slice(0, 20);
+    const r = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=40&page=1&sparkline=false&price_change_percentage=24h');
+    if (!r.ok) throw new Error(`CoinGecko ${r.status}`);
+    const coins = (await r.json()).filter(c => !STABLECOINS.has(c.id)).slice(0, 20);
 
     let html = `<div class="crypto-item crypto-header">
-      <span>#</span><span>NAME</span><span style="text-align:right">PRICE</span><span style="text-align:right">24H</span><span style="text-align:right">MKT CAP</span>
+      <span>#</span><span>COIN</span>
+      <span style="text-align:right">PRICE</span>
+      <span style="text-align:right">24H</span>
+      <span style="text-align:right">MKT CAP</span>
     </div>`;
-    filtered.forEach((c, i) => {
+    coins.forEach((c, i) => {
       const chg = c.price_change_percentage_24h || 0;
       const cls = chg > 0 ? 'up' : chg < 0 ? 'down' : 'neutral';
-      const chgStr = (chg > 0 ? '+' : '') + chg.toFixed(2) + '%';
-      const mcap = formatMarketCap(c.market_cap);
-      const price = c.current_price >= 1 ? '$' + c.current_price.toLocaleString() : '$' + c.current_price.toFixed(6);
+      const price = c.current_price >= 1
+        ? '$' + c.current_price.toLocaleString()
+        : '$' + c.current_price.toFixed(6);
       html += `<div class="crypto-item">
         <span class="crypto-rank">${i+1}</span>
         <span class="crypto-name">${escHtml(c.symbol.toUpperCase())}</span>
         <span class="crypto-price">${price}</span>
-        <span class="crypto-change ${cls}">${chgStr}</span>
-        <span class="crypto-mcap">${mcap}</span>
+        <span class="crypto-change ${cls}">${(chg>0?'+':'')+chg.toFixed(2)}%</span>
+        <span class="crypto-mcap">${fmtMcap(c.market_cap)}</span>
       </div>`;
     });
     document.getElementById('crypto-body').innerHTML = html;
-  } catch(e) {
-    showError('crypto-body', e.message);
-  }
-}
-
-function formatMarketCap(n) {
-  if (!n) return '—';
-  if (n >= 1e12) return '$' + (n/1e12).toFixed(2) + 'T';
-  if (n >= 1e9) return '$' + (n/1e9).toFixed(1) + 'B';
-  if (n >= 1e6) return '$' + (n/1e6).toFixed(1) + 'M';
-  return '$' + n.toLocaleString();
+  } catch(e) { showError('crypto-body', e.message); }
 }
 
 // ============================================================
-// 6. COMMODITIES
+// 6. COMMODITIES — Yahoo Finance futures via proxy
 // ============================================================
-const COMMODITY_LIST = [
-  {name:'Gold', unit:'$/oz'},
-  {name:'Silver', unit:'$/oz'},
-  {name:'Platinum', unit:'$/oz'},
-  {name:'Palladium', unit:'$/oz'},
-  {name:'WTI Crude Oil', unit:'$/bbl'},
-  {name:'Brent Crude Oil', unit:'$/bbl'},
-  {name:'Natural Gas', unit:'$/MMBtu'},
-  {name:'Copper', unit:'$/lb'},
-  {name:'Aluminum', unit:'$/MT'},
-  {name:'Wheat', unit:'$/bu'},
-  {name:'Corn', unit:'$/bu'},
-  {name:'Soybeans', unit:'$/bu'},
-  {name:'Coffee', unit:'$/lb'},
-  {name:'Sugar', unit:'$/lb'},
-  {name:'Cotton', unit:'$/lb'},
-  {name:'Lumber', unit:'$/MBF'},
-  {name:'Uranium', unit:'$/lb'},
-  {name:'Lithium', unit:'$/MT'},
-  {name:'Nickel', unit:'$/MT'},
-  {name:'Cobalt', unit:'$/MT'}
-];
+const COMMODITY_META = {
+  'GC=F':  { name: 'Gold',       unit: '$/oz'    },
+  'SI=F':  { name: 'Silver',     unit: '$/oz'    },
+  'PL=F':  { name: 'Platinum',   unit: '$/oz'    },
+  'PA=F':  { name: 'Palladium',  unit: '$/oz'    },
+  'CL=F':  { name: 'WTI Oil',    unit: '$/bbl'   },
+  'BZ=F':  { name: 'Brent Oil',  unit: '$/bbl'   },
+  'NG=F':  { name: 'Nat. Gas',   unit: '$/MMBtu' },
+  'HG=F':  { name: 'Copper',     unit: '$/lb'    },
+  'ALI=F': { name: 'Aluminum',   unit: '$/MT'    },
+  'ZW=F':  { name: 'Wheat',      unit: '¢/bu'    },
+  'ZC=F':  { name: 'Corn',       unit: '¢/bu'    },
+  'ZS=F':  { name: 'Soybeans',   unit: '¢/bu'    },
+  'KC=F':  { name: 'Coffee',     unit: '¢/lb'    },
+  'SB=F':  { name: 'Sugar',      unit: '¢/lb'    },
+  'CT=F':  { name: 'Cotton',     unit: '¢/lb'    },
+  'LBS=F': { name: 'Lumber',     unit: '$/MBF'   },
+};
 
 async function loadCommodities() {
   showLoading('commodities-body', 'FETCHING COMMODITY PRICES...');
   try {
-    const names = COMMODITY_LIST.map(c => c.name).join(', ');
-    const text = await callAnthropic(
-      `Search the web for current market prices for these commodities: ${names}. ` +
-      `Return a JSON array. Each element: {"name":"string","price":number,"change24h":number}. ` +
-      `price is the current price as a plain number. change24h is the percentage change as a plain number (e.g. 0.85 or -1.20). ` +
-      `Begin your response with [ and end with ]. No text outside the JSON array.`,
-      1500
-    );
-    const items = parseJSON(text);
+    const syms = Object.keys(COMMODITY_META).join(',');
+    const url  = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${syms}&fields=regularMarketPrice,regularMarketChangePercent`;
+    const data = await proxyFetch(url).then(r => r.json());
+    const quotes = data?.quoteResponse?.result || [];
+    if (!quotes.length) throw new Error('No commodity data returned from Yahoo Finance');
 
     let html = '';
-    items.forEach(item => {
-      const unit = (COMMODITY_LIST.find(c => c.name.toLowerCase().includes(item.name.toLowerCase().split(' ')[0])) || {}).unit || '';
-      const cls = colorChange(item.change24h);
-      const chg = formatChange(item.change24h);
+    quotes.forEach(q => {
+      const meta = COMMODITY_META[q.symbol] || { name: q.symbol, unit: '' };
+      const cls  = colorChange(q.regularMarketChangePercent);
       html += `<div class="commodity-item">
-        <span class="commodity-name">${escHtml(item.name)}</span>
-        <span class="commodity-price">${typeof item.price === 'number' ? item.price.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : escHtml(String(item.price))}</span>
-        <span class="commodity-unit">${escHtml(unit)}</span>
-        <span class="commodity-change ${cls}">${chg}</span>
+        <span class="commodity-name">${escHtml(meta.name)}</span>
+        <span class="commodity-price">${fmtPrice(q.regularMarketPrice)}</span>
+        <span class="commodity-unit">${escHtml(meta.unit)}</span>
+        <span class="commodity-change ${cls}">${fmtPct(q.regularMarketChangePercent)}</span>
       </div>`;
     });
-    document.getElementById('commodities-body').innerHTML = html || '<div class="api-warn">No data available.</div>';
-
-    updateCommodityTicker(items);
-  } catch(e) {
-    showError('commodities-body', e.message);
-  }
+    document.getElementById('commodities-body').innerHTML =
+      html || '<div class="api-warn">No data available.</div>';
+    updateCommodityTicker(quotes);
+  } catch(e) { showError('commodities-body', e.message); }
 }
 
-function updateCommodityTicker(items) {
-  const ticker = document.getElementById('ticker-commodities');
-  let html = '';
-  [...items, ...items].forEach(item => {
-    const cls = colorChange(item.change24h);
-    const chg = formatChange(item.change24h);
-    html += `<span class="ticker-item"><span class="ticker-sym">${escHtml(item.name.toUpperCase())}</span> <span>${typeof item.price === 'number' ? item.price.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : item.price}</span> <span class="${cls}">${chg}</span></span>`;
-  });
-  ticker.innerHTML = html;
+function updateCommodityTicker(quotes) {
+  const el = document.getElementById('ticker-commodities');
+  el.innerHTML = [...quotes, ...quotes].map(q => {
+    const meta = COMMODITY_META[q.symbol] || { name: q.symbol, unit: '' };
+    const cls  = colorChange(q.regularMarketChangePercent);
+    return `<span class="ticker-item"><span class="ticker-sym">${escHtml(meta.name.toUpperCase())}</span> <span>${fmtPrice(q.regularMarketPrice)}</span> <span class="neutral" style="font-size:10px;">${escHtml(meta.unit)}</span> <span class="${cls}">${fmtPct(q.regularMarketChangePercent)}</span></span>`;
+  }).join('');
 }
 
 // ============================================================
-// 7. WORLD WEATHER (Open-Meteo)
+// 7. INDICES — Yahoo Finance via proxy → top ticker
 // ============================================================
-const WORLD_CAPITALS = [
-  {city:'Oslo', country:'🇳🇴', lat:59.91, lon:10.75},
-  {city:'London', country:'🇬🇧', lat:51.51, lon:-0.13},
-  {city:'Paris', country:'🇫🇷', lat:48.85, lon:2.35},
-  {city:'Berlin', country:'🇩🇪', lat:52.52, lon:13.41},
-  {city:'Madrid', country:'🇪🇸', lat:40.42, lon:-3.70},
-  {city:'Rome', country:'🇮🇹', lat:41.90, lon:12.50},
-  {city:'Moscow', country:'🇷🇺', lat:55.75, lon:37.62},
-  {city:'Istanbul', country:'🇹🇷', lat:41.01, lon:28.95},
-  {city:'Dubai', country:'🇦🇪', lat:25.20, lon:55.27},
-  {city:'New Delhi', country:'🇮🇳', lat:28.61, lon:77.23},
-  {city:'Beijing', country:'🇨🇳', lat:39.91, lon:116.39},
-  {city:'Tokyo', country:'🇯🇵', lat:35.68, lon:139.69},
-  {city:'Seoul', country:'🇰🇷', lat:37.57, lon:126.98},
-  {city:'Bangkok', country:'🇹🇭', lat:13.75, lon:100.52},
-  {city:'Singapore', country:'🇸🇬', lat:1.35, lon:103.82},
-  {city:'Jakarta', country:'🇮🇩', lat:-6.21, lon:106.85},
-  {city:'Sydney', country:'🇦🇺', lat:-33.87, lon:151.21},
-  {city:'Nairobi', country:'🇰🇪', lat:-1.29, lon:36.82},
-  {city:'Cairo', country:'🇪🇬', lat:30.04, lon:31.24},
-  {city:'Lagos', country:'🇳🇬', lat:6.46, lon:3.38},
-  {city:'Johannesburg', country:'🇿🇦', lat:-26.20, lon:28.04},
-  {city:'Buenos Aires', country:'🇦🇷', lat:-34.61, lon:-58.38},
-  {city:'São Paulo', country:'🇧🇷', lat:-23.55, lon:-46.63},
-  {city:'Mexico City', country:'🇲🇽', lat:19.43, lon:-99.13},
-  {city:'New York', country:'🇺🇸', lat:40.71, lon:-74.01},
-  {city:'Los Angeles', country:'🇺🇸', lat:34.05, lon:-118.24},
-  {city:'Chicago', country:'🇺🇸', lat:41.88, lon:-87.63},
-  {city:'Toronto', country:'🇨🇦', lat:43.65, lon:-79.38},
-  {city:'Reykjavik', country:'🇮🇸', lat:64.13, lon:-21.82},
-  {city:'Ankara', country:'🇹🇷', lat:39.93, lon:32.86}
-];
-
-const WMO_CODES = {
-  0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
-  45:'🌫️',48:'🌫️',
-  51:'🌦️',53:'🌦️',55:'🌧️',
-  61:'🌧️',63:'🌧️',65:'🌧️',
-  71:'🌨️',73:'🌨️',75:'❄️',
-  80:'🌦️',81:'🌧️',82:'⛈️',
-  95:'⛈️',96:'⛈️',99:'⛈️'
+const INDEX_META = {
+  '^OSEBX': 'OSEBX',  '^GSPC': 'S&P 500', '^IXIC': 'NASDAQ',
+  '^GDAXI': 'DAX',    '^FTSE': 'FTSE 100', '^FCHI': 'CAC 40',
+  '^N225':  'Nikkei', '^HSI':  'Hang Seng', '^AXJO': 'ASX 200',
+  '^BVSP':  'Bovespa', '^BSESN': 'Sensex',
 };
 
-let weatherData = [];
-let weatherIndex = 0;
-let weatherTimer = null;
+async function loadIndices() {
+  try {
+    const syms = Object.keys(INDEX_META).join(',');
+    const url  = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${syms}&fields=regularMarketPrice,regularMarketChangePercent`;
+    const data = await proxyFetch(url).then(r => r.json());
+    const quotes = data?.quoteResponse?.result || [];
+    if (!quotes.length) return;
+    const el = document.getElementById('ticker-indices');
+    el.innerHTML = [...quotes, ...quotes].map(q => {
+      const name = INDEX_META[q.symbol] || q.symbol;
+      const cls  = colorChange(q.regularMarketChangePercent);
+      return `<span class="ticker-item"><span class="ticker-sym">${escHtml(name)}</span> <span>${fmtPrice(q.regularMarketPrice, 0)}</span> <span class="${cls}">${fmtPct(q.regularMarketChangePercent)}</span></span>`;
+    }).join('');
+  } catch(_) { /* silent — ticker is non-critical */ }
+}
+
+// ============================================================
+// 8. WEATHER — Open-Meteo (CORS-enabled, no key)
+// ============================================================
+const CAPITALS = [
+  {city:'Oslo',lat:59.91,lon:10.75,flag:'🇳🇴'},{city:'London',lat:51.51,lon:-0.13,flag:'🇬🇧'},
+  {city:'Paris',lat:48.85,lon:2.35,flag:'🇫🇷'},{city:'Berlin',lat:52.52,lon:13.41,flag:'🇩🇪'},
+  {city:'Madrid',lat:40.42,lon:-3.70,flag:'🇪🇸'},{city:'Rome',lat:41.90,lon:12.50,flag:'🇮🇹'},
+  {city:'Moscow',lat:55.75,lon:37.62,flag:'🇷🇺'},{city:'Istanbul',lat:41.01,lon:28.95,flag:'🇹🇷'},
+  {city:'Dubai',lat:25.20,lon:55.27,flag:'🇦🇪'},{city:'New Delhi',lat:28.61,lon:77.23,flag:'🇮🇳'},
+  {city:'Beijing',lat:39.91,lon:116.39,flag:'🇨🇳'},{city:'Tokyo',lat:35.68,lon:139.69,flag:'🇯🇵'},
+  {city:'Seoul',lat:37.57,lon:126.98,flag:'🇰🇷'},{city:'Bangkok',lat:13.75,lon:100.52,flag:'🇹🇭'},
+  {city:'Singapore',lat:1.35,lon:103.82,flag:'🇸🇬'},{city:'Sydney',lat:-33.87,lon:151.21,flag:'🇦🇺'},
+  {city:'Cairo',lat:30.04,lon:31.24,flag:'🇪🇬'},{city:'Nairobi',lat:-1.29,lon:36.82,flag:'🇰🇪'},
+  {city:'Lagos',lat:6.46,lon:3.38,flag:'🇳🇬'},{city:'São Paulo',lat:-23.55,lon:-46.63,flag:'🇧🇷'},
+  {city:'New York',lat:40.71,lon:-74.01,flag:'🇺🇸'},{city:'Los Angeles',lat:34.05,lon:-118.24,flag:'🇺🇸'},
+  {city:'Toronto',lat:43.65,lon:-79.38,flag:'🇨🇦'},{city:'Mexico City',lat:19.43,lon:-99.13,flag:'🇲🇽'},
+];
+
+const WMO = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
+
+let wxData = [], wxIdx = 0, wxTimer = null;
 
 async function loadWeather() {
-  const carousel = document.getElementById('weather-carousel');
-  carousel.innerHTML = '<div class="loading"><div class="loading-bar"></div>LOADING WEATHER...</div>';
+  document.getElementById('weather-carousel').innerHTML =
+    '<div class="loading"><div class="loading-bar"></div>LOADING WEATHER...</div>';
   document.getElementById('weather-nav').innerHTML = '';
-
   try {
-    // Fetch all in parallel (batched)
-    const batch = WORLD_CAPITALS.slice(0, 20); // first 20 for performance
-    const promises = batch.map(async (cap) => {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${cap.lat}&longitude=${cap.lon}&current=temperature_2m,weathercode,windspeed_10m&wind_speed_unit=kmh`;
-      const r = await fetch(url);
-      const d = await r.json();
-      return {
-        city: cap.city,
-        country: cap.country,
-        temp: Math.round(d.current?.temperature_2m ?? 0),
-        code: d.current?.weathercode ?? 0,
-        wind: Math.round(d.current?.windspeed_10m ?? 0)
-      };
-    });
-
-    weatherData = await Promise.all(promises);
+    wxData = await Promise.all(CAPITALS.map(c =>
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,weathercode,windspeed_10m&wind_speed_unit=kmh`)
+        .then(r => r.json())
+        .then(d => ({
+          city: c.city, flag: c.flag,
+          temp: Math.round(d.current?.temperature_2m ?? 0),
+          code: d.current?.weathercode ?? 0,
+          wind: Math.round(d.current?.windspeed_10m ?? 0),
+        }))
+    ));
     renderWeatherCarousel();
   } catch(e) {
-    carousel.innerHTML = `<div class="api-error">⚠ Weather fetch failed: ${e.message}</div>`;
+    document.getElementById('weather-carousel').innerHTML = `<div class="api-error">⚠ ${escHtml(e.message)}</div>`;
   }
 }
 
 function renderWeatherCarousel() {
-  const carousel = document.getElementById('weather-carousel');
-  const nav = document.getElementById('weather-nav');
-
-  let slidesHtml = '';
-  weatherData.forEach((w, i) => {
-    const icon = WMO_CODES[w.code] || '🌡️';
-    slidesHtml += `<div class="weather-slide ${i === 0 ? 'active' : ''}" id="ws-${i}">
-      <div style="display:flex; align-items:flex-start; gap:16px; padding:12px;">
+  document.getElementById('weather-carousel').innerHTML = wxData.map((w, i) =>
+    `<div class="weather-slide ${i===0?'active':''}" id="ws-${i}">
+      <div style="display:flex;align-items:flex-start;gap:16px;padding:12px;">
         <div>
           <div class="weather-city">${escHtml(w.city)}</div>
-          <div class="weather-country">${w.country}</div>
+          <div class="weather-country">${w.flag}</div>
           <div class="weather-temp">${w.temp}°C</div>
-          <div class="weather-details">💨 Wind: ${w.wind} km/h</div>
+          <div class="weather-details">💨 ${w.wind} km/h</div>
         </div>
-        <div class="weather-icon" style="font-size:64px; margin-top:8px;">${icon}</div>
+        <div style="font-size:64px;margin-top:8px;">${WMO[w.code]||'🌡️'}</div>
       </div>
-    </div>`;
-  });
-  carousel.innerHTML = slidesHtml;
-
-  let dotsHtml = '';
-  weatherData.forEach((_, i) => {
-    dotsHtml += `<div class="weather-dot ${i === 0 ? 'active' : ''}" onclick="goToWeather(${i})"></div>`;
-  });
-  nav.innerHTML = dotsHtml;
-
-  weatherIndex = 0;
-  startWeatherTimer();
+    </div>`
+  ).join('');
+  document.getElementById('weather-nav').innerHTML = wxData.map((_,i) =>
+    `<div class="weather-dot ${i===0?'active':''}" onclick="goWeather(${i})"></div>`
+  ).join('');
+  wxIdx = 0;
+  startWxTimer();
 }
 
-function startWeatherTimer() {
-  if (weatherTimer) clearInterval(weatherTimer);
-  resetWeatherProgress();
-  weatherTimer = setInterval(() => {
-    weatherIndex = (weatherIndex + 1) % weatherData.length;
-    showWeatherSlide(weatherIndex);
-    resetWeatherProgress();
-  }, 3000);
+function startWxTimer() {
+  if (wxTimer) clearInterval(wxTimer);
+  resetWxProgress();
+  wxTimer = setInterval(() => { wxIdx = (wxIdx+1) % wxData.length; showWxSlide(wxIdx); resetWxProgress(); }, 3000);
 }
 
-function resetWeatherProgress() {
-  const bar = document.getElementById('weather-progress-bar');
-  bar.style.transition = 'none';
-  bar.style.width = '0%';
-  setTimeout(() => {
-    bar.style.transition = 'width 3s linear';
-    bar.style.width = '100%';
-  }, 50);
+function resetWxProgress() {
+  const b = document.getElementById('weather-progress-bar');
+  b.style.transition = 'none'; b.style.width = '0%';
+  setTimeout(() => { b.style.transition = 'width 3s linear'; b.style.width = '100%'; }, 50);
 }
 
-function showWeatherSlide(idx) {
-  document.querySelectorAll('.weather-slide').forEach((s, i) => {
-    s.classList.toggle('active', i === idx);
-  });
-  document.querySelectorAll('.weather-dot').forEach((d, i) => {
-    d.classList.toggle('active', i === idx);
-  });
+function showWxSlide(idx) {
+  document.querySelectorAll('.weather-slide').forEach((s,i) => s.classList.toggle('active', i===idx));
+  document.querySelectorAll('.weather-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
 }
 
-function goToWeather(idx) {
-  weatherIndex = idx;
-  showWeatherSlide(idx);
-  startWeatherTimer();
-}
+function goWeather(idx) { wxIdx = idx; showWxSlide(idx); startWxTimer(); }
 
 // ============================================================
-// 8. WORLD CLOCK
+// 9. WORLD CLOCK
 // ============================================================
 const CLOCKS = [
-  {city:'OSLO', tz:'Europe/Oslo'},
-  {city:'LONDON', tz:'Europe/London'},
-  {city:'NEW YORK', tz:'America/New_York'},
+  {city:'OSLO',        tz:'Europe/Oslo'},
+  {city:'LONDON',      tz:'Europe/London'},
+  {city:'NEW YORK',    tz:'America/New_York'},
   {city:'LOS ANGELES', tz:'America/Los_Angeles'},
-  {city:'TOKYO', tz:'Asia/Tokyo'},
-  {city:'DUBAI', tz:'Asia/Dubai'},
-  {city:'SYDNEY', tz:'Australia/Sydney'},
-  {city:'SÃO PAULO', tz:'America/Sao_Paulo'}
+  {city:'TOKYO',       tz:'Asia/Tokyo'},
+  {city:'DUBAI',       tz:'Asia/Dubai'},
+  {city:'SYDNEY',      tz:'Australia/Sydney'},
+  {city:'SÃO PAULO',   tz:'America/Sao_Paulo'},
 ];
 
 function initClocks() {
-  const grid = document.getElementById('clock-grid');
-  grid.innerHTML = CLOCKS.map((c, i) =>
-    `<div class="clock-item">
+  document.getElementById('clock-grid').innerHTML = CLOCKS.map((c, i) => `
+    <div class="clock-item">
       <div class="clock-city">${escHtml(c.city)}</div>
       <div class="clock-time" id="ct-${i}">--:--:--</div>
       <div class="clock-date" id="cd-${i}">---</div>
       <div class="clock-tz">${escHtml(c.tz)}</div>
-    </div>`
-  ).join('');
+    </div>`).join('');
 }
 
 function updateClocks() {
   const now = new Date();
   CLOCKS.forEach((c, i) => {
     try {
-      const timeStr = now.toLocaleTimeString('en-GB', {timeZone: c.tz, hour:'2-digit', minute:'2-digit', second:'2-digit'});
-      const dateStr = now.toLocaleDateString('en-GB', {timeZone: c.tz, weekday:'short', month:'short', day:'numeric'});
-      const timeEl = document.getElementById(`ct-${i}`);
-      const dateEl = document.getElementById(`cd-${i}`);
-      if (timeEl) timeEl.textContent = timeStr;
-      if (dateEl) dateEl.textContent = dateStr;
-    } catch(e) {}
+      document.getElementById(`ct-${i}`).textContent =
+        now.toLocaleTimeString('en-GB', { timeZone: c.tz, hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      document.getElementById(`cd-${i}`).textContent =
+        now.toLocaleDateString('en-GB', { timeZone: c.tz, weekday:'short', month:'short', day:'numeric' });
+    } catch(_) {}
   });
-
-  // Update header time
-  const header = document.getElementById('live-time');
-  if (header) {
-    header.textContent = now.toLocaleTimeString('en-GB', {timeZone: 'UTC', hour12: false}) + ' UTC';
-  }
+  const h = document.getElementById('live-time');
+  if (h) h.textContent = now.toLocaleTimeString('en-GB', { timeZone:'UTC', hour12:false }) + ' UTC';
 }
 
 // ============================================================
-// INDICES TICKER (Anthropic-fetched)
-// ============================================================
-async function loadIndices() {
-  if (!ANTHROPIC_API_KEY) return;
-  try {
-    const text = await callAnthropic(
-      `Search for current values and daily percentage changes for these stock indices: OSEBX, S&P500, NASDAQ, DAX, FTSE100, CAC40, Nikkei225, HangSeng, ASX200, Bovespa, Sensex. ` +
-      `Return ONLY a JSON array: [{symbol, value, change24h}]. No commentary.`,
-      800
-    );
-    const indices = parseJSON(text);
-    const ticker = document.getElementById('ticker-indices');
-    let html = '';
-    [...indices, ...indices].forEach(idx => {
-      const cls = colorChange(idx.change24h);
-      const chg = formatChange(idx.change24h);
-      html += `<span class="ticker-item"><span class="ticker-sym">${escHtml(idx.symbol)}</span> <span>${escHtml(String(idx.value))}</span> <span class="${cls}">${chg}</span></span>`;
-    });
-    ticker.innerHTML = html;
-  } catch(e) {
-    // Silent fail for ticker
-  }
-}
-
-// ============================================================
-// UTILITIES
-// ============================================================
-function escHtml(str) {
-  if (typeof str !== 'string') str = String(str || '');
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ============================================================
-// AUTO-REFRESH
-// ============================================================
-function setupAutoRefresh() {
-  // All panel refreshes are manual only — use the ⟳ REFRESH button on each panel.
-}
-
-// ============================================================
-// SPINNING GLOBE
+// 10. SPINNING GLOBE (Canvas)
 // ============================================================
 function initGlobe() {
   const canvas = document.getElementById('globe-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  const cx = W / 2, cy = H / 2, R = W / 2 - 2;
+  const W = canvas.width, H = canvas.height, cx = W/2, cy = H/2, R = W/2 - 2;
   let angle = 0;
 
   function project(lat, lon) {
-    // lon in radians (already offset by angle), lat in radians
-    const x = cx + R * Math.cos(lat) * Math.cos(lon);
-    const y = cy - R * Math.sin(lat);
-    const z = Math.cos(lat) * Math.sin(lon); // depth: positive = front
-    return { x, y, z };
+    return {
+      x: cx + R * Math.cos(lat) * Math.cos(lon),
+      y: cy - R * Math.sin(lat),
+      z: Math.cos(lat) * Math.sin(lon),
+    };
   }
 
-  function drawGlobe() {
+  (function draw() {
     ctx.clearRect(0, 0, W, H);
 
-    // Background sphere
-    const bg = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.05, cx, cy, R);
-    bg.addColorStop(0, 'rgba(13,30,46,0.95)');
-    bg.addColorStop(1, 'rgba(5,10,14,0.98)');
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.fillStyle = bg;
-    ctx.fill();
+    const bg = ctx.createRadialGradient(cx-R*.3, cy-R*.3, R*.05, cx, cy, R);
+    bg.addColorStop(0, 'rgba(13,30,46,.95)');
+    bg.addColorStop(1, 'rgba(5,10,14,.98)');
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
+    ctx.fillStyle = bg; ctx.fill();
 
-    const step = 3 * Math.PI / 180;
+    const step = Math.PI / 60;
 
-    // Meridians — one every 30°
-    for (let lonDeg = 0; lonDeg < 360; lonDeg += 30) {
-      const lonRad = lonDeg * Math.PI / 180;
+    // Meridians
+    for (let d = 0; d < 360; d += 30) {
+      const lon = d * Math.PI / 180;
       ctx.beginPath();
       let started = false;
-      for (let latDeg = -90; latDeg <= 90; latDeg += 3) {
-        const p = project(latDeg * Math.PI / 180, lonRad + angle);
-        const alpha = p.z > 0 ? 0.55 : 0.10;
-        if (!started) {
-          ctx.moveTo(p.x, p.y);
-          started = true;
-        } else {
-          ctx.lineTo(p.x, p.y);
-        }
+      for (let lat = -Math.PI/2; lat <= Math.PI/2; lat += step) {
+        const p = project(lat, lon + angle);
+        started ? ctx.lineTo(p.x, p.y) : (ctx.moveTo(p.x, p.y), started = true);
       }
-      // Brightness by facing angle
-      const facing = (Math.sin(lonRad + angle) + 1) / 2;
-      ctx.strokeStyle = `rgba(255,170,0,${0.08 + facing * 0.5})`;
-      ctx.lineWidth = 0.7;
-      ctx.stroke();
+      const facing = (Math.sin(lon + angle) + 1) / 2;
+      ctx.strokeStyle = `rgba(255,170,0,${0.07 + facing * 0.48})`;
+      ctx.lineWidth = 0.7; ctx.stroke();
     }
 
-    // Parallels — every 30° latitude
-    for (let latDeg = -60; latDeg <= 60; latDeg += 30) {
-      const latRad = latDeg * Math.PI / 180;
-      // Draw front half and back half with different opacity
-      for (const [start, end, alpha] of [[0, Math.PI, 0.45], [Math.PI, Math.PI * 2, 0.1]]) {
-        ctx.beginPath();
-        let first = true;
-        for (let lon = start; lon <= end; lon += step) {
-          const p = project(latRad, lon + angle);
-          if (first) { ctx.moveTo(p.x, p.y); first = false; }
-          else ctx.lineTo(p.x, p.y);
+    // Parallels
+    for (const latD of [-60, -30, 0, 30, 60]) {
+      const lat = latD * Math.PI / 180;
+      for (const [s, e, alpha] of [[0, Math.PI, 0.45], [Math.PI, Math.PI*2, 0.1]]) {
+        ctx.beginPath(); let first = true;
+        for (let lon = s; lon <= e; lon += step) {
+          const p = project(lat, lon + angle);
+          first ? (ctx.moveTo(p.x, p.y), first = false) : ctx.lineTo(p.x, p.y);
         }
         ctx.strokeStyle = `rgba(255,170,0,${alpha})`;
-        ctx.lineWidth = latDeg === 0 ? 0.9 : 0.6;
-        ctx.stroke();
+        ctx.lineWidth = latD === 0 ? 0.9 : 0.6; ctx.stroke();
       }
     }
 
-    // Outer glow ring
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,170,0,0.75)';
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,170,0,.75)'; ctx.lineWidth = 1.2; ctx.stroke();
 
-    // Subtle highlight
-    const hl = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.35, 0, cx - R * 0.35, cy - R * 0.35, R * 0.55);
-    hl.addColorStop(0, 'rgba(255,220,100,0.08)');
-    hl.addColorStop(1, 'rgba(255,220,100,0)');
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.fillStyle = hl;
-    ctx.fill();
+    const hl = ctx.createRadialGradient(cx-R*.35, cy-R*.35, 0, cx-R*.35, cy-R*.35, R*.55);
+    hl.addColorStop(0, 'rgba(255,220,100,.08)'); hl.addColorStop(1, 'rgba(255,220,100,0)');
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
+    ctx.fillStyle = hl; ctx.fill();
 
     angle += 0.006;
-    requestAnimationFrame(drawGlobe);
-  }
-
-  drawGlobe();
+    requestAnimationFrame(draw);
+  })();
 }
 
 // ============================================================
 // INIT
 // ============================================================
 function init() {
-  initApiKey();
   initGlobe();
   initClocks();
   setInterval(updateClocks, 1000);
   updateClocks();
 
-  // Load non-API data immediately
+  // All panels load immediately — no API key required
+  loadNews();
+  loadLeaders();
+  loadSports();
   loadCrypto();
   loadWeather();
 
-  // Load API data if key available
-  if (ANTHROPIC_API_KEY) {
-    loadNews();
-    loadLeaders();
-    loadSports();
-    loadStocks();
-    loadCommodities();
-    loadIndices();
-  } else {
-    showError('news-body', 'Enter your Anthropic API key above to load live headlines.');
-    showError('leaders-body', 'Enter your Anthropic API key above to load world leader statements.');
-    showError('sports-body', 'Enter your Anthropic API key above to load sports scores.');
-    showError('stocks-body', 'Enter your Anthropic API key above to load stock prices.');
-    showError('commodities-body', 'Enter your Anthropic API key above to load commodity prices.');
-  }
-
-  setupAutoRefresh();
+  // Yahoo Finance calls (through proxy)
+  loadStocks();
+  loadCommodities();
+  loadIndices();
 }
 
 document.addEventListener('DOMContentLoaded', init);
