@@ -1,12 +1,8 @@
 {
   "name": "world-monitor",
   "version": "1.0.0",
-  "description": "World monitoring dashboard with local proxy",
-  "main": "server.js",
+  "description": "World monitoring dashboard",
   "scripts": {
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2"
+    "dev": "vercel dev"
   }
 }

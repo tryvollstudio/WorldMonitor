@@ -8,6 +8,7 @@
   },
   "routes": [
     { "src": "/api/proxy", "dest": "/api/proxy.js" },
-    { "src": "/(.*)",      "dest": "/world-monitor.html" }
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
