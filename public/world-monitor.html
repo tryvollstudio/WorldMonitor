@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WORLD MONITOR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00ff88; --red: #ff3355; --amber: #ffaa00;
+    --blue: #00aaff;  --bg: #050a0e;  --bg2: #0a1520;
+    --bg3: #0d1e2e;   --border: #1a3a5a; --text: #c8e0f0; --dim: #4a6a8a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; background:var(--bg); color:var(--text); font-family:'Share Tech Mono',monospace; overflow-x:hidden; }
+
+  body::before {
+    content:''; position:fixed; inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);
+    pointer-events:none; z-index:9999;
+  }
+  body::after {
+    content:''; position:fixed; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events:none; z-index:9998; opacity:0.4;
+  }
+
+  /* HEADER */
+  #header {
+    background:linear-gradient(90deg,#000,var(--bg2),#000);
+    border-bottom:1px solid var(--border);
+    padding:6px 20px; display:flex; align-items:center; justify-content:space-between;
+    position:sticky; top:0; z-index:100;
+  }
+  #header h1 { font-family:'Bebas Neue'; font-size:28px; letter-spacing:6px; color:var(--amber); text-shadow:0 0 20px rgba(255,170,0,0.5); }
+  #header .status { display:flex; gap:16px; align-items:center; font-size:11px; color:var(--dim); }
+  .pulse-dot { width:8px; height:8px; border-radius:50%; background:var(--green); display:inline-block; animation:pulse 1.5s infinite; box-shadow:0 0 8px var(--green); }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+  #live-time { color:var(--green); font-size:13px; letter-spacing:2px; }
+  #globe-canvas { display:block; image-rendering:crisp-edges; }
+
+  /* TICKER */
+  .ticker-wrap { background:var(--bg2); border-top:1px solid var(--border); border-bottom:1px solid var(--border); height:28px; overflow:hidden; position:relative; }
+  .ticker-wrap.top-ticker { border-top:none; }
+  .ticker-label { position:absolute; left:0; top:0; height:100%; padding:0 10px; background:var(--amber); color:#000; font-family:'Bebas Neue'; font-size:16px; letter-spacing:1px; display:flex; align-items:center; z-index:10; white-space:nowrap; }
+  .ticker-content { display:flex; animation:ticker-scroll linear infinite; white-space:nowrap; padding-left:100%; }
+  .ticker-item { padding:0 20px; font-size:11px; height:28px; display:inline-flex; align-items:center; gap:6px; border-right:1px solid var(--border); }
+  .ticker-sym { color:var(--amber); font-weight:bold; }
+  @keyframes ticker-scroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+  /* GRID */
+  #main-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--border); padding:1px; }
+
+  /* PANELS */
+  .panel { background:var(--bg); padding:0; position:relative; min-height:300px; }
+  .panel-header { background:var(--bg2); border-bottom:1px solid var(--border); padding:8px 12px; display:flex; align-items:center; justify-content:space-between; }
+  .panel-title { font-family:'Bebas Neue'; font-size:18px; letter-spacing:3px; color:var(--amber); display:flex; align-items:center; gap:8px; }
+  .panel-body { padding:10px; overflow-y:auto; }
+  .refresh-btn { background:transparent; border:1px solid var(--border); color:var(--dim); font-family:'Share Tech Mono'; font-size:10px; padding:3px 8px; cursor:pointer; border-radius:2px; transition:all 0.2s; }
+  .refresh-btn:hover { border-color:var(--amber); color:var(--amber); }
+
+  /* LOADING */
+  .loading { display:flex; align-items:center; justify-content:center; height:100px; color:var(--dim); font-size:12px; flex-direction:column; gap:8px; }
+  .loading-bar { width:200px; height:2px; background:var(--border); border-radius:1px; overflow:hidden; }
+  .loading-bar::after { content:''; display:block; height:100%; width:40%; background:var(--amber); animation:loading-anim 1s infinite; }
+  @keyframes loading-anim { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }
+
+  /* NEWS */
+  .news-item { padding:8px 0; border-bottom:1px solid var(--border); }
+  .news-item:last-child { border-bottom:none; }
+  .news-headline { font-size:12px; color:var(--text); line-height:1.4; }
+  .news-meta { font-size:10px; color:var(--dim); margin-top:3px; }
+  .news-number { color:var(--amber); font-size:14px; font-family:'Bebas Neue'; margin-right:6px; }
+
+  /* LEADERS */
+  .leader-item { padding:8px 0; border-bottom:1px solid var(--border); }
+  .leader-item:last-child { border-bottom:none; }
+  .leader-name { color:var(--amber); font-size:12px; font-family:'Bebas Neue'; letter-spacing:1px; }
+  .leader-quote { font-size:11px; color:var(--text); line-height:1.4; margin-top:3px; }
+  .leader-time { font-size:10px; color:var(--dim); margin-top:2px; }
+  .section-divider { font-family:'Bebas Neue'; font-size:11px; letter-spacing:2px; color:var(--dim); border-bottom:1px solid var(--border); padding-bottom:3px; margin:8px 0 4px; }
+
+  /* SPORTS */
+  .sport-section { margin-bottom:10px; }
+  .sport-league { color:var(--amber); font-size:12px; font-family:'Bebas Neue'; letter-spacing:2px; border-bottom:1px solid var(--border); padding-bottom:3px; margin-bottom:5px; }
+  .sport-match { display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:11px; border-bottom:1px solid rgba(26,58,90,0.4); }
+  .sport-teams { color:var(--text); flex:1; }
+  .sport-score { color:var(--green); font-weight:bold; margin:0 8px; }
+  .sport-status { font-size:10px; color:var(--dim); }
+
+  /* STOCKS */
+  #panel-stocks { grid-column:1 / -1; }
+  .stocks-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:4px; }
+  .stock-item { background:var(--bg2); padding:6px 8px; border:1px solid var(--border); border-radius:2px; }
+  .stock-sym { font-size:11px; color:var(--amber); font-weight:bold; }
+  .stock-price { font-size:13px; color:var(--text); margin-top:2px; }
+  .stock-change { font-size:11px; margin-top:1px; }
+
+  /* CRYPTO */
+  .crypto-item { display:grid; grid-template-columns:24px 1fr 80px 70px 90px; gap:6px; align-items:center; padding:5px 0; border-bottom:1px solid rgba(26,58,90,0.4); font-size:11px; }
+  .crypto-rank { color:var(--dim); text-align:right; }
+  .crypto-name { color:var(--text); }
+  .crypto-price { text-align:right; color:var(--text); }
+  .crypto-change { text-align:right; }
+  .crypto-mcap { text-align:right; color:var(--dim); font-size:10px; }
+  .crypto-header { color:var(--dim); font-size:10px; padding-bottom:4px; border-bottom:1px solid var(--border); margin-bottom:4px; }
+
+  /* COMMODITIES */
+  .commodity-item { display:grid; grid-template-columns:1fr 80px 60px 50px; gap:6px; align-items:center; padding:4px 0; border-bottom:1px solid rgba(26,58,90,0.4); font-size:11px; }
+  .commodity-name { color:var(--text); }
+  .commodity-price { text-align:right; color:var(--text); }
+  .commodity-unit { text-align:center; color:var(--dim); font-size:10px; }
+  .commodity-change { text-align:right; }
+
+  /* WEATHER */
+  #panel-weather { min-height:220px; }
+  .weather-carousel { position:relative; overflow:hidden; }
+  .weather-slide { display:none; padding:10px; }
+  .weather-slide.active { display:block; }
+  .weather-city { font-family:'Bebas Neue'; font-size:24px; color:var(--amber); letter-spacing:3px; }
+  .weather-country { font-size:12px; color:var(--dim); }
+  .weather-temp { font-size:48px; font-family:'Bebas Neue'; color:var(--text); line-height:1; }
+  .weather-details { font-size:11px; color:var(--dim); margin-top:6px; }
+  .weather-nav { display:flex; gap:4px; flex-wrap:wrap; padding:8px 10px; }
+  .weather-dot { width:6px; height:6px; border-radius:50%; background:var(--border); cursor:pointer; transition:background 0.2s; }
+  .weather-dot.active { background:var(--amber); }
+  .weather-progress { height:2px; background:var(--border); }
+  .weather-progress-bar { height:100%; background:var(--amber); width:0%; transition:width 3s linear; }
+
+  /* WORLD CLOCK */
+  .clock-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .clock-item { background:var(--bg2); border:1px solid var(--border); padding:10px; text-align:center; border-radius:2px; }
+  .clock-city { font-size:10px; color:var(--dim); letter-spacing:1px; text-transform:uppercase; }
+  .clock-time { font-family:'Bebas Neue'; font-size:28px; color:var(--green); letter-spacing:2px; line-height:1.1; text-shadow:0 0 10px rgba(0,255,136,0.3); }
+  .clock-date { font-size:10px; color:var(--dim); }
+  .clock-tz { font-size:9px; color:var(--border); margin-top:2px; }
+
+  .up { color:var(--green); }
+  .down { color:var(--red); }
+  .neutral { color:var(--dim); }
+
+  .api-error { color:var(--red); font-size:11px; padding:8px; border:1px solid rgba(255,51,85,0.3); border-radius:2px; background:rgba(255,51,85,0.05); }
+  .api-warn  { color:var(--amber); font-size:11px; padding:8px; border:1px solid rgba(255,170,0,0.3); border-radius:2px; background:rgba(255,170,0,0.05); }
+
+  @media (max-width:1400px) { #main-grid { grid-template-columns:1fr 1fr; } #panel-stocks { grid-column:1 / -1; } }
+  @media (max-width:900px)  { #main-grid { grid-template-columns:1fr; }   #panel-stocks { grid-column:1; } }
+
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--amber); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <canvas id="globe-canvas" width="54" height="54"></canvas>
+    <h1>WORLD MONITOR</h1>
+  </div>
+  <div class="status">
+    <span class="pulse-dot"></span>
+    <span>LIVE · FREE APIs</span>
+    <span id="live-time">--:--:--</span>
+  </div>
+</div>
+
+<!-- TOP TICKER: Indices -->
+<div class="ticker-wrap top-ticker">
+  <div class="ticker-label">INDICES</div>
+  <div class="ticker-content" id="ticker-indices" style="animation-duration:60s;padding-left:160px;">
+    <span class="ticker-item"><span class="ticker-sym">S&amp;P 500</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">NASDAQ</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">DAX</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">FTSE 100</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">NIKKEI</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">S&amp;P 500</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">NASDAQ</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">DAX</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">FTSE 100</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">NIKKEI</span> <span>—</span></span>
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div id="main-grid">
+
+  <!-- 1. BREAKING NEWS -->
+  <div class="panel" id="panel-news">
+    <div class="panel-header">
+      <div class="panel-title"><span class="pulse-dot"></span> BREAKING NEWS</div>
+      <button class="refresh-btn" onclick="loadNews()">⟳ REFRESH</button>
+    </div>
+    <div class="panel-body" id="news-body">
+      <div class="loading"><div class="loading-bar"></div>LOADING HEADLINES...</div>
+    </div>
+  </div>
+
+  <!-- 2. WORLD LEADERS -->
+  <div class="panel" id="panel-leaders">
+    <div class="panel-header">
+      <div class="panel-title">◈ WORLD LEADERS</div>
+      <button class="refresh-btn" onclick="loadLeaders()">⟳ REFRESH</button>
+    </div>
+    <div class="panel-body" id="leaders-body" style="max-height:420px;overflow-y:auto;">
+      <div class="loading"><div class="loading-bar"></div>LOADING STATEMENTS...</div>
+    </div>
+  </div>
+
+  <!-- 3. SPORTS -->
+  <div class="panel" id="panel-sports">
+    <div class="panel-header">
+      <div class="panel-title">◎ SPORTS SCORES</div>
+      <button class="refresh-btn" onclick="loadSports()">⟳ REFRESH</button>
+    </div>
+    <div class="panel-body" id="sports-body" style="max-height:420px;overflow-y:auto;">
+      <div class="loading"><div class="loading-bar"></div>LOADING SCORES...</div>
+    </div>
+  </div>
+
+  <!-- 4. STOCKS (full width) -->
+  <div class="panel" id="panel-stocks">
+    <div class="panel-header">
+      <div class="panel-title">◆ TOP 30 S&amp;P 500</div>
+      <button class="refresh-btn" onclick="loadStocks()">⟳ REFRESH</button>
+    </div>
+    <div class="panel-body" id="stocks-body">
+      <div class="loading"><div class="loading-bar"></div>LOADING STOCKS...</div>
+    </div>
+  </div>
+
+  <!-- 5. CRYPTO -->
+  <div class="panel" id="panel-crypto">
+    <div class="panel-header">
+      <div class="panel-title">◉ CRYPTOCURRENCY</div>
+      <button class="refresh-btn" onclick="loadCrypto()">⟳ REFRESH</button>
+    </div>
+    <div class="panel-body" id="crypto-body">
+      <div class="loading"><div class="loading-bar"></div>LOADING CRYPTO...</div>
+    </div>
+  </div>
+
+  <!-- 6. COMMODITIES -->
+  <div class="panel" id="panel-commodities">
+    <div class="panel-header">
+      <div class="panel-title">◈ COMMODITIES</div>
+      <button class="refresh-btn" onclick="loadCommodities()">⟳ REFRESH</button>
+    </div>
+    <div class="panel-body" id="commodities-body">
+      <div class="loading"><div class="loading-bar"></div>LOADING COMMODITIES...</div>
+    </div>
+  </div>
+
+  <!-- 7. WEATHER -->
+  <div class="panel" id="panel-weather">
+    <div class="panel-header">
+      <div class="panel-title">◌ WORLD WEATHER</div>
+      <button class="refresh-btn" onclick="loadWeather()">⟳ REFRESH</button>
+    </div>
+    <div id="weather-carousel" class="weather-carousel">
+      <div class="loading"><div class="loading-bar"></div>LOADING WEATHER...</div>
+    </div>
+    <div class="weather-progress"><div class="weather-progress-bar" id="weather-progress-bar"></div></div>
+    <div class="weather-nav" id="weather-nav"></div>
+  </div>
+
+  <!-- 8. WORLD CLOCK -->
+  <div class="panel" id="panel-clock">
+    <div class="panel-header">
+      <div class="panel-title">◷ WORLD CLOCK</div>
+    </div>
+    <div class="panel-body">
+      <div class="clock-grid" id="clock-grid"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MIDDLE TICKER: Commodities -->
+<div class="ticker-wrap">
+  <div class="ticker-label">COMMOD</div>
+  <div class="ticker-content" id="ticker-commodities" style="animation-duration:50s;padding-left:160px;">
+    <span class="ticker-item"><span class="ticker-sym">GOLD</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">SILVER</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">OIL WTI</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">BRENT</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">NAT GAS</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">GOLD</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">SILVER</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">OIL WTI</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">BRENT</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">NAT GAS</span> <span>—</span></span>
+  </div>
+</div>
+
+<!-- BOTTOM TICKER: Stocks -->
+<div class="ticker-wrap">
+  <div class="ticker-label">S&amp;P 500</div>
+  <div class="ticker-content" id="ticker-stocks" style="animation-duration:90s;padding-left:160px;">
+    <span class="ticker-item"><span class="ticker-sym">AAPL</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">MSFT</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">NVDA</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">AMZN</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">AAPL</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">MSFT</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">NVDA</span> <span>—</span></span>
+    <span class="ticker-item"><span class="ticker-sym">AMZN</span> <span>—</span></span>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// UTILITIES
+// ============================================================
+
+// Route through local/Vercel proxy for CORS-blocked hosts
+async function proxyFetch(url) {
+  const r = await fetch('/api/proxy?url=' + encodeURIComponent(url));
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.error || `Proxy ${r.status}`);
+  }
+  return r;
+}
+
+// Parse RSS 2.0 or Atom XML → array of {title, link, pubDate}
+function parseRSS(xmlStr) {
+  const doc = new DOMParser().parseFromString(xmlStr, 'text/xml');
+  if (doc.querySelector('parsererror')) throw new Error('XML parse error');
+  // Atom
+  const entries = doc.querySelectorAll('entry');
+  if (entries.length) {
+    return Array.from(entries).map(e => ({
+      title:   e.querySelector('title')?.textContent?.trim() || '',
+      link:    e.querySelector('link[rel="alternate"]')?.getAttribute('href')
+             || e.querySelector('link')?.getAttribute('href') || '',
+      pubDate: e.querySelector('published,updated')?.textContent?.trim() || '',
+    }));
+  }
+  // RSS 2.0
+  return Array.from(doc.querySelectorAll('item')).map(i => ({
+    title:   i.querySelector('title')?.textContent?.trim() || '',
+    link:    i.querySelector('link')?.textContent?.trim()  || '',
+    pubDate: i.querySelector('pubDate')?.textContent?.trim() || '',
+  }));
+}
+
+function relTime(d) {
+  const dt = new Date(d);
+  if (isNaN(dt)) return d ? String(d).slice(0, 16) : '—';
+  const s = (Date.now() - dt) / 1000;
+  if (s < 60)    return 'just now';
+  if (s < 3600)  return Math.floor(s / 60)   + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600)  + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function colorChange(v) {
+  const n = parseFloat(v);
+  return isNaN(n) ? 'neutral' : n > 0 ? 'up' : n < 0 ? 'down' : 'neutral';
+}
+
+function fmtPct(v) {
+  const n = parseFloat(v);
+  if (isNaN(n)) return '—';
+  return (n > 0 ? '+' : '') + n.toFixed(2) + '%';
+}
+
+function fmtPrice(n, dp = 2) {
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+}
+
+function fmtMcap(n) {
+  if (!n) return '—';
+  if (n >= 1e12) return '$' + (n/1e12).toFixed(2) + 'T';
+  if (n >= 1e9)  return '$' + (n/1e9).toFixed(1)  + 'B';
+  if (n >= 1e6)  return '$' + (n/1e6).toFixed(1)  + 'M';
+  return '$' + n.toLocaleString();
+}
+
+function showLoading(id, msg) {
+  document.getElementById(id).innerHTML =
+    `<div class="loading"><div class="loading-bar"></div>${msg}</div>`;
+}
+
+function showError(id, msg) {
+  document.getElementById(id).innerHTML = `<div class="api-error">⚠ ${escHtml(msg)}</div>`;
+}
+
+// ============================================================
+// 1. BREAKING NEWS  — RSS via proxy (BBC, AJ, CNN, Reuters)
+// ============================================================
+const NEWS_FEEDS = [
+  { src: 'BBC',        url: 'https://feeds.bbci.co.uk/news/rss.xml' },
+  { src: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml' },
+  { src: 'CNN',        url: 'http://rss.cnn.com/rss/edition.rss' },
+  { src: 'Reuters',    url: 'https://feeds.reuters.com/reuters/topNews' },
+];
+
+async function loadNews() {
+  showLoading('news-body', 'FETCHING HEADLINES...');
+  try {
+    const settled = await Promise.allSettled(
+      NEWS_FEEDS.map(f =>
+        proxyFetch(f.url).then(r => r.text()).then(xml => parseRSS(xml).map(i => ({ ...i, src: f.src })))
+      )
+    );
+    const items = settled
+      .filter(r => r.status === 'fulfilled')
+      .flatMap(r => r.value.slice(0, 3));
+    items.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    const top = items.slice(0, 8);
+    if (!top.length) { showError('news-body', 'All RSS feeds failed to load.'); return; }
+    document.getElementById('news-body').innerHTML = top.map((item, i) => `
+      <div class="news-item">
+        <div class="news-headline"><span class="news-number">${i+1}.</span>${escHtml(item.title)}</div>
+        <div class="news-meta">${escHtml(item.src)} · ${relTime(item.pubDate)}</div>
+      </div>`).join('');
+  } catch(e) { showError('news-body', e.message); }
+}
+
+// ============================================================
+// 2. WORLD LEADERS — official RSS + Nitter for social posts
+// ============================================================
+const LEADER_FEEDS = [
+  // Official government / institution feeds
+  { name: 'WHITE HOUSE',    url: 'https://www.whitehouse.gov/news/feed/',                  type: 'official' },
+  { name: 'KREMLIN',        url: 'https://en.kremlin.ru/events/president/news/rss/',        type: 'official' },
+  { name: 'POPE FRANCIS',   url: 'https://www.vaticannews.va/en/pope.rss',                  type: 'official' },
+  { name: 'PMO INDIA',      url: 'https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3', type: 'official' },
+  { name: 'XINHUA / XI',    url: 'https://www.xinhuanet.com/english/rss/chinalatestnews.xml', type: 'official' },
+  // Nitter (Twitter/X mirror) — fails gracefully if instance is down
+  { name: '@elonmusk',      url: 'https://nitter.privacydev.net/elonmusk/rss',      type: 'social' },
+  { name: '@realDonaldTrump', url: 'https://nitter.privacydev.net/realDonaldTrump/rss', type: 'social' },
+  { name: '@BillGates',     url: 'https://nitter.privacydev.net/BillGates/rss',      type: 'social' },
+  { name: '@finkd',         url: 'https://nitter.privacydev.net/finkd/rss',          type: 'social' },
+];
+
+async function loadLeaders() {
+  showLoading('leaders-body', 'FETCHING STATEMENTS...');
+  try {
+    const settled = await Promise.allSettled(
+      LEADER_FEEDS.map(f =>
+        proxyFetch(f.url).then(r => r.text())
+          .then(xml => ({ name: f.name, type: f.type, items: parseRSS(xml) }))
+      )
+    );
+
+    const official = [], social = [];
+    settled.forEach((r, i) => {
+      if (r.status !== 'fulfilled' || !r.value.items.length) return;
+      const { name, type, items } = r.value;
+      const item = items[0];
+      const entry = `<div class="leader-item">
+        <div class="leader-name">${escHtml(name)}</div>
+        <div class="leader-quote">${escHtml(item.title)}</div>
+        <div class="leader-time">${relTime(item.pubDate)}</div>
+      </div>`;
+      (type === 'social' ? social : official).push(entry);
+    });
+
+    let html = '';
+    if (official.length) html += `<div class="section-divider">◈ OFFICIAL STATEMENTS</div>` + official.join('');
+    if (social.length)   html += `<div class="section-divider">◈ SOCIAL MEDIA</div>`         + social.join('');
+
+    document.getElementById('leaders-body').innerHTML =
+      html || '<div class="api-warn">No feeds loaded — check proxy connectivity.</div>';
+  } catch(e) { showError('leaders-body', e.message); }
+}
+
+// ============================================================
+// 3. SPORTS — thesportsdb.com free API (CORS-enabled)
+// ============================================================
+const SPORT_LEAGUES = [
+  { name: 'PREMIER LEAGUE',    id: 4328 },
+  { name: 'CHAMPIONS LEAGUE',  id: 4480 },
+  { name: 'NBA',               id: 4387 },
+  { name: 'NFL',               id: 4391 },
+  { name: 'ELITESERIEN (NOR)', id: 4346 },
+  { name: 'FORMULA 1',         id: 4370 },
+];
+
+async function loadSports() {
+  showLoading('sports-body', 'FETCHING SCORES...');
+  try {
+    const settled = await Promise.allSettled(
+      SPORT_LEAGUES.map(l =>
+        fetch(`https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id=${l.id}`)
+          .then(r => r.json())
+          .then(d => ({ name: l.name, events: (d.events || []).slice(-4).reverse() }))
+      )
+    );
+
+    let html = '';
+    settled.forEach(r => {
+      if (r.status !== 'fulfilled') return;
+      const { name, events } = r.value;
+      if (!events.length) return;
+      html += `<div class="sport-section"><div class="sport-league">${escHtml(name)}</div>`;
+      events.forEach(e => {
+        const score = (e.intHomeScore != null && e.intAwayScore != null)
+          ? `${e.intHomeScore}–${e.intAwayScore}` : '—';
+        const status = e.strStatus === 'Match Finished' ? 'FT'
+          : e.strStatus === 'Not Started' ? e.strTime?.slice(0,5) || 'NS'
+          : e.strStatus || '';
+        html += `<div class="sport-match">
+          <span class="sport-teams">${escHtml(e.strHomeTeam)} vs ${escHtml(e.strAwayTeam)}</span>
+          <span class="sport-score">${score}</span>
+          <span class="sport-status">${escHtml(status)}</span>
+        </div>`;
+      });
+      html += '</div>';
+    });
+
+    document.getElementById('sports-body').innerHTML =
+      html || '<div class="api-warn">No sports data loaded.</div>';
+  } catch(e) { showError('sports-body', e.message); }
+}
+
+// ============================================================
+// 4. STOCKS — Yahoo Finance v7 via proxy (crumb handled server-side)
+// ============================================================
+const STOCK_SYMS = [
+  'AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','BRK-B','JPM','V',
+  'UNH','XOM','MA','LLY','AVGO','BAC','COST','NFLX','AMD','WMT',
+  'JNJ','PG','HD','MRK','ABBV','CVX','ORCL','CRM','PEP','KO',
+];
+
+async function loadStocks() {
+  showLoading('stocks-body', 'FETCHING STOCK PRICES...');
+  try {
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${STOCK_SYMS.join(',')}&fields=regularMarketPrice,regularMarketChangePercent`;
+    const data = await proxyFetch(url).then(r => r.json());
+    const quotes = data?.quoteResponse?.result || [];
+    if (!quotes.length) throw new Error('No quote data returned from Yahoo Finance');
+
+    let html = '<div class="stocks-grid">';
+    quotes.forEach(q => {
+      const cls = colorChange(q.regularMarketChangePercent);
+      html += `<div class="stock-item">
+        <div class="stock-sym">${escHtml(q.symbol)}</div>
+        <div class="stock-price">$${fmtPrice(q.regularMarketPrice)}</div>
+        <div class="stock-change ${cls}">${fmtPct(q.regularMarketChangePercent)}</div>
+      </div>`;
+    });
+    html += '</div>';
+    document.getElementById('stocks-body').innerHTML = html;
+    updateStockTicker(quotes);
+  } catch(e) { showError('stocks-body', e.message); }
+}
+
+function updateStockTicker(quotes) {
+  const el = document.getElementById('ticker-stocks');
+  const items = [...quotes, ...quotes].map(q => {
+    const cls = colorChange(q.regularMarketChangePercent);
+    return `<span class="ticker-item"><span class="ticker-sym">${escHtml(q.symbol)}</span> <span>$${fmtPrice(q.regularMarketPrice)}</span> <span class="${cls}">${fmtPct(q.regularMarketChangePercent)}</span></span>`;
+  }).join('');
+  el.innerHTML = items;
+}
+
+// ============================================================
+// 5. CRYPTO — CoinGecko free API (CORS-enabled, no key)
+// ============================================================
+const STABLECOINS = new Set(['tether','usd-coin','dai','binance-usd','trueusd','usdd','frax','paxos-standard','first-digital-usd']);
+
+async function loadCrypto() {
+  showLoading('crypto-body', 'FETCHING CRYPTO DATA...');
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=40&page=1&sparkline=false&price_change_percentage=24h');
+    if (!r.ok) throw new Error(`CoinGecko ${r.status}`);
+    const coins = (await r.json()).filter(c => !STABLECOINS.has(c.id)).slice(0, 20);
+
+    let html = `<div class="crypto-item crypto-header">
+      <span>#</span><span>COIN</span>
+      <span style="text-align:right">PRICE</span>
+      <span style="text-align:right">24H</span>
+      <span style="text-align:right">MKT CAP</span>
+    </div>`;
+    coins.forEach((c, i) => {
+      const chg = c.price_change_percentage_24h || 0;
+      const cls = chg > 0 ? 'up' : chg < 0 ? 'down' : 'neutral';
+      const price = c.current_price >= 1
+        ? '$' + c.current_price.toLocaleString()
+        : '$' + c.current_price.toFixed(6);
+      html += `<div class="crypto-item">
+        <span class="crypto-rank">${i+1}</span>
+        <span class="crypto-name">${escHtml(c.symbol.toUpperCase())}</span>
+        <span class="crypto-price">${price}</span>
+        <span class="crypto-change ${cls}">${(chg>0?'+':'')+chg.toFixed(2)}%</span>
+        <span class="crypto-mcap">${fmtMcap(c.market_cap)}</span>
+      </div>`;
+    });
+    document.getElementById('crypto-body').innerHTML = html;
+  } catch(e) { showError('crypto-body', e.message); }
+}
+
+// ============================================================
+// 6. COMMODITIES — Yahoo Finance futures via proxy
+// ============================================================
+const COMMODITY_META = {
+  'GC=F':  { name: 'Gold',       unit: '$/oz'    },
+  'SI=F':  { name: 'Silver',     unit: '$/oz'    },
+  'PL=F':  { name: 'Platinum',   unit: '$/oz'    },
+  'PA=F':  { name: 'Palladium',  unit: '$/oz'    },
+  'CL=F':  { name: 'WTI Oil',    unit: '$/bbl'   },
+  'BZ=F':  { name: 'Brent Oil',  unit: '$/bbl'   },
+  'NG=F':  { name: 'Nat. Gas',   unit: '$/MMBtu' },
+  'HG=F':  { name: 'Copper',     unit: '$/lb'    },
+  'ALI=F': { name: 'Aluminum',   unit: '$/MT'    },
+  'ZW=F':  { name: 'Wheat',      unit: '¢/bu'    },
+  'ZC=F':  { name: 'Corn',       unit: '¢/bu'    },
+  'ZS=F':  { name: 'Soybeans',   unit: '¢/bu'    },
+  'KC=F':  { name: 'Coffee',     unit: '¢/lb'    },
+  'SB=F':  { name: 'Sugar',      unit: '¢/lb'    },
+  'CT=F':  { name: 'Cotton',     unit: '¢/lb'    },
+  'LBS=F': { name: 'Lumber',     unit: '$/MBF'   },
+};
+
+async function loadCommodities() {
+  showLoading('commodities-body', 'FETCHING COMMODITY PRICES...');
+  try {
+    const syms = Object.keys(COMMODITY_META).join(',');
+    const url  = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${syms}&fields=regularMarketPrice,regularMarketChangePercent`;
+    const data = await proxyFetch(url).then(r => r.json());
+    const quotes = data?.quoteResponse?.result || [];
+    if (!quotes.length) throw new Error('No commodity data returned from Yahoo Finance');
+
+    let html = '';
+    quotes.forEach(q => {
+      const meta = COMMODITY_META[q.symbol] || { name: q.symbol, unit: '' };
+      const cls  = colorChange(q.regularMarketChangePercent);
+      html += `<div class="commodity-item">
+        <span class="commodity-name">${escHtml(meta.name)}</span>
+        <span class="commodity-price">${fmtPrice(q.regularMarketPrice)}</span>
+        <span class="commodity-unit">${escHtml(meta.unit)}</span>
+        <span class="commodity-change ${cls}">${fmtPct(q.regularMarketChangePercent)}</span>
+      </div>`;
+    });
+    document.getElementById('commodities-body').innerHTML =
+      html || '<div class="api-warn">No data available.</div>';
+    updateCommodityTicker(quotes);
+  } catch(e) { showError('commodities-body', e.message); }
+}
+
+function updateCommodityTicker(quotes) {
+  const el = document.getElementById('ticker-commodities');
+  el.innerHTML = [...quotes, ...quotes].map(q => {
+    const meta = COMMODITY_META[q.symbol] || { name: q.symbol, unit: '' };
+    const cls  = colorChange(q.regularMarketChangePercent);
+    return `<span class="ticker-item"><span class="ticker-sym">${escHtml(meta.name.toUpperCase())}</span> <span>${fmtPrice(q.regularMarketPrice)}</span> <span class="neutral" style="font-size:10px;">${escHtml(meta.unit)}</span> <span class="${cls}">${fmtPct(q.regularMarketChangePercent)}</span></span>`;
+  }).join('');
+}
+
+// ============================================================
+// 7. INDICES — Yahoo Finance via proxy → top ticker
+// ============================================================
+const INDEX_META = {
+  '^OSEBX': 'OSEBX',  '^GSPC': 'S&P 500', '^IXIC': 'NASDAQ',
+  '^GDAXI': 'DAX',    '^FTSE': 'FTSE 100', '^FCHI': 'CAC 40',
+  '^N225':  'Nikkei', '^HSI':  'Hang Seng', '^AXJO': 'ASX 200',
+  '^BVSP':  'Bovespa', '^BSESN': 'Sensex',
+};
+
+async function loadIndices() {
+  try {
+    const syms = Object.keys(INDEX_META).join(',');
+    const url  = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${syms}&fields=regularMarketPrice,regularMarketChangePercent`;
+    const data = await proxyFetch(url).then(r => r.json());
+    const quotes = data?.quoteResponse?.result || [];
+    if (!quotes.length) return;
+    const el = document.getElementById('ticker-indices');
+    el.innerHTML = [...quotes, ...quotes].map(q => {
+      const name = INDEX_META[q.symbol] || q.symbol;
+      const cls  = colorChange(q.regularMarketChangePercent);
+      return `<span class="ticker-item"><span class="ticker-sym">${escHtml(name)}</span> <span>${fmtPrice(q.regularMarketPrice, 0)}</span> <span class="${cls}">${fmtPct(q.regularMarketChangePercent)}</span></span>`;
+    }).join('');
+  } catch(_) { /* silent — ticker is non-critical */ }
+}
+
+// ============================================================
+// 8. WEATHER — Open-Meteo (CORS-enabled, no key)
+// ============================================================
+const CAPITALS = [
+  {city:'Oslo',lat:59.91,lon:10.75,flag:'🇳🇴'},{city:'London',lat:51.51,lon:-0.13,flag:'🇬🇧'},
+  {city:'Paris',lat:48.85,lon:2.35,flag:'🇫🇷'},{city:'Berlin',lat:52.52,lon:13.41,flag:'🇩🇪'},
+  {city:'Madrid',lat:40.42,lon:-3.70,flag:'🇪🇸'},{city:'Rome',lat:41.90,lon:12.50,flag:'🇮🇹'},
+  {city:'Moscow',lat:55.75,lon:37.62,flag:'🇷🇺'},{city:'Istanbul',lat:41.01,lon:28.95,flag:'🇹🇷'},
+  {city:'Dubai',lat:25.20,lon:55.27,flag:'🇦🇪'},{city:'New Delhi',lat:28.61,lon:77.23,flag:'🇮🇳'},
+  {city:'Beijing',lat:39.91,lon:116.39,flag:'🇨🇳'},{city:'Tokyo',lat:35.68,lon:139.69,flag:'🇯🇵'},
+  {city:'Seoul',lat:37.57,lon:126.98,flag:'🇰🇷'},{city:'Bangkok',lat:13.75,lon:100.52,flag:'🇹🇭'},
+  {city:'Singapore',lat:1.35,lon:103.82,flag:'🇸🇬'},{city:'Sydney',lat:-33.87,lon:151.21,flag:'🇦🇺'},
+  {city:'Cairo',lat:30.04,lon:31.24,flag:'🇪🇬'},{city:'Nairobi',lat:-1.29,lon:36.82,flag:'🇰🇪'},
+  {city:'Lagos',lat:6.46,lon:3.38,flag:'🇳🇬'},{city:'São Paulo',lat:-23.55,lon:-46.63,flag:'🇧🇷'},
+  {city:'New York',lat:40.71,lon:-74.01,flag:'🇺🇸'},{city:'Los Angeles',lat:34.05,lon:-118.24,flag:'🇺🇸'},
+  {city:'Toronto',lat:43.65,lon:-79.38,flag:'🇨🇦'},{city:'Mexico City',lat:19.43,lon:-99.13,flag:'🇲🇽'},
+];
+
+const WMO = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
+
+let wxData = [], wxIdx = 0, wxTimer = null;
+
+async function loadWeather() {
+  document.getElementById('weather-carousel').innerHTML =
+    '<div class="loading"><div class="loading-bar"></div>LOADING WEATHER...</div>';
+  document.getElementById('weather-nav').innerHTML = '';
+  try {
+    wxData = await Promise.all(CAPITALS.map(c =>
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current=temperature_2m,weathercode,windspeed_10m&wind_speed_unit=kmh`)
+        .then(r => r.json())
+        .then(d => ({
+          city: c.city, flag: c.flag,
+          temp: Math.round(d.current?.temperature_2m ?? 0),
+          code: d.current?.weathercode ?? 0,
+          wind: Math.round(d.current?.windspeed_10m ?? 0),
+        }))
+    ));
+    renderWeatherCarousel();
+  } catch(e) {
+    document.getElementById('weather-carousel').innerHTML = `<div class="api-error">⚠ ${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderWeatherCarousel() {
+  document.getElementById('weather-carousel').innerHTML = wxData.map((w, i) =>
+    `<div class="weather-slide ${i===0?'active':''}" id="ws-${i}">
+      <div style="display:flex;align-items:flex-start;gap:16px;padding:12px;">
+        <div>
+          <div class="weather-city">${escHtml(w.city)}</div>
+          <div class="weather-country">${w.flag}</div>
+          <div class="weather-temp">${w.temp}°C</div>
+          <div class="weather-details">💨 ${w.wind} km/h</div>
+        </div>
+        <div style="font-size:64px;margin-top:8px;">${WMO[w.code]||'🌡️'}</div>
+      </div>
+    </div>`
+  ).join('');
+  document.getElementById('weather-nav').innerHTML = wxData.map((_,i) =>
+    `<div class="weather-dot ${i===0?'active':''}" onclick="goWeather(${i})"></div>`
+  ).join('');
+  wxIdx = 0;
+  startWxTimer();
+}
+
+function startWxTimer() {
+  if (wxTimer) clearInterval(wxTimer);
+  resetWxProgress();
+  wxTimer = setInterval(() => { wxIdx = (wxIdx+1) % wxData.length; showWxSlide(wxIdx); resetWxProgress(); }, 3000);
+}
+
+function resetWxProgress() {
+  const b = document.getElementById('weather-progress-bar');
+  b.style.transition = 'none'; b.style.width = '0%';
+  setTimeout(() => { b.style.transition = 'width 3s linear'; b.style.width = '100%'; }, 50);
+}
+
+function showWxSlide(idx) {
+  document.querySelectorAll('.weather-slide').forEach((s,i) => s.classList.toggle('active', i===idx));
+  document.querySelectorAll('.weather-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
+}
+
+function goWeather(idx) { wxIdx = idx; showWxSlide(idx); startWxTimer(); }
+
+// ============================================================
+// 9. WORLD CLOCK
+// ============================================================
+const CLOCKS = [
+  {city:'OSLO',        tz:'Europe/Oslo'},
+  {city:'LONDON',      tz:'Europe/London'},
+  {city:'NEW YORK',    tz:'America/New_York'},
+  {city:'LOS ANGELES', tz:'America/Los_Angeles'},
+  {city:'TOKYO',       tz:'Asia/Tokyo'},
+  {city:'DUBAI',       tz:'Asia/Dubai'},
+  {city:'SYDNEY',      tz:'Australia/Sydney'},
+  {city:'SÃO PAULO',   tz:'America/Sao_Paulo'},
+];
+
+function initClocks() {
+  document.getElementById('clock-grid').innerHTML = CLOCKS.map((c, i) => `
+    <div class="clock-item">
+      <div class="clock-city">${escHtml(c.city)}</div>
+      <div class="clock-time" id="ct-${i}">--:--:--</div>
+      <div class="clock-date" id="cd-${i}">---</div>
+      <div class="clock-tz">${escHtml(c.tz)}</div>
+    </div>`).join('');
+}
+
+function updateClocks() {
+  const now = new Date();
+  CLOCKS.forEach((c, i) => {
+    try {
+      document.getElementById(`ct-${i}`).textContent =
+        now.toLocaleTimeString('en-GB', { timeZone: c.tz, hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      document.getElementById(`cd-${i}`).textContent =
+        now.toLocaleDateString('en-GB', { timeZone: c.tz, weekday:'short', month:'short', day:'numeric' });
+    } catch(_) {}
+  });
+  const h = document.getElementById('live-time');
+  if (h) h.textContent = now.toLocaleTimeString('en-GB', { timeZone:'UTC', hour12:false }) + ' UTC';
+}
+
+// ============================================================
+// 10. SPINNING GLOBE (Canvas)
+// ============================================================
+function initGlobe() {
+  const canvas = document.getElementById('globe-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height, cx = W/2, cy = H/2, R = W/2 - 2;
+  let angle = 0;
+
+  function project(lat, lon) {
+    return {
+      x: cx + R * Math.cos(lat) * Math.cos(lon),
+      y: cy - R * Math.sin(lat),
+      z: Math.cos(lat) * Math.sin(lon),
+    };
+  }
+
+  (function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    const bg = ctx.createRadialGradient(cx-R*.3, cy-R*.3, R*.05, cx, cy, R);
+    bg.addColorStop(0, 'rgba(13,30,46,.95)');
+    bg.addColorStop(1, 'rgba(5,10,14,.98)');
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
+    ctx.fillStyle = bg; ctx.fill();
+
+    const step = Math.PI / 60;
+
+    // Meridians
+    for (let d = 0; d < 360; d += 30) {
+      const lon = d * Math.PI / 180;
+      ctx.beginPath();
+      let started = false;
+      for (let lat = -Math.PI/2; lat <= Math.PI/2; lat += step) {
+        const p = project(lat, lon + angle);
+        started ? ctx.lineTo(p.x, p.y) : (ctx.moveTo(p.x, p.y), started = true);
+      }
+      const facing = (Math.sin(lon + angle) + 1) / 2;
+      ctx.strokeStyle = `rgba(255,170,0,${0.07 + facing * 0.48})`;
+      ctx.lineWidth = 0.7; ctx.stroke();
+    }
+
+    // Parallels
+    for (const latD of [-60, -30, 0, 30, 60]) {
+      const lat = latD * Math.PI / 180;
+      for (const [s, e, alpha] of [[0, Math.PI, 0.45], [Math.PI, Math.PI*2, 0.1]]) {
+        ctx.beginPath(); let first = true;
+        for (let lon = s; lon <= e; lon += step) {
+          const p = project(lat, lon + angle);
+          first ? (ctx.moveTo(p.x, p.y), first = false) : ctx.lineTo(p.x, p.y);
+        }
+        ctx.strokeStyle = `rgba(255,170,0,${alpha})`;
+        ctx.lineWidth = latD === 0 ? 0.9 : 0.6; ctx.stroke();
+      }
+    }
+
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(255,170,0,.75)'; ctx.lineWidth = 1.2; ctx.stroke();
+
+    const hl = ctx.createRadialGradient(cx-R*.35, cy-R*.35, 0, cx-R*.35, cy-R*.35, R*.55);
+    hl.addColorStop(0, 'rgba(255,220,100,.08)'); hl.addColorStop(1, 'rgba(255,220,100,0)');
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
+    ctx.fillStyle = hl; ctx.fill();
+
+    angle += 0.006;
+    requestAnimationFrame(draw);
+  })();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  initGlobe();
+  initClocks();
+  setInterval(updateClocks, 1000);
+  updateClocks();
+
+  // All panels load immediately — no API key required
+  loadNews();
+  loadLeaders();
+  loadSports();
+  loadCrypto();
+  loadWeather();
+
+  // Yahoo Finance calls (through proxy)
+  loadStocks();
+  loadCommodities();
+  loadIndices();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
